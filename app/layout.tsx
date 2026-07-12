@@ -9,6 +9,7 @@ import { AppHeader } from "@/components/shell/app-header";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Analytics } from "@vercel/analytics/next";
 
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
@@ -62,6 +63,7 @@ export default function RootLayout({
           <BottomNav />
           <Toaster position="top-center" />
         </TooltipProvider>
+        <Analytics />
       </body>
     </html>
   );
