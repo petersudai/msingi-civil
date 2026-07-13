@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 /**
- * Saved calculations — local-first.
+ * Saved calculations: local-first.
  *
  * Everything persists to localStorage immediately (site connectivity is
  * unreliable; saving must never depend on the network). When the user signs
@@ -16,7 +16,7 @@ export interface SavedCalculation {
   toolSlug: string;
   /** Human title, e.g. "Class 20 (1:2:4) · 6 m³". */
   title: string;
-  /** Raw form values (strings) — reloaded straight into the tool's form. */
+  /** Raw form values (strings), reloaded straight into the tool's form. */
   inputs: Record<string, string>;
   /** ISO timestamps. */
   createdAt: string;

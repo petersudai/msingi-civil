@@ -30,7 +30,7 @@ const plexCondensed = IBM_Plex_Sans_Condensed({
 
 export const metadata: Metadata = {
   title: {
-    default: "Msingi — Site engineer's toolkit",
+    default: "Msingi: Site engineer's toolkit",
     template: "%s · Msingi",
   },
   description:

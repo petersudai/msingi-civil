@@ -12,7 +12,7 @@ const TABS = [
 ] as const;
 
 /**
- * Fixed bottom tab bar — the primary navigation on a phone. Targets are a
+ * Fixed bottom tab bar, the primary navigation on a phone. Targets are a
  * full third of the screen wide and 56px tall for gloved/one-thumb use.
  */
 export function BottomNav() {

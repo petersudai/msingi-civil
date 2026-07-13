@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const metadata: Metadata = {
   title: "Concrete materials",
   description:
-    "Cement bags, sand and ballast tonnage for any concrete volume and mix class — dry-volume method, full working shown.",
+    "Cement bags, sand and ballast tonnage for any concrete volume and mix class, using the dry-volume method with full working shown.",
 };
 
 export default function ConcreteMaterialsPage() {

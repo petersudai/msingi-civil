@@ -10,11 +10,11 @@ import type { CalcSheetData } from "./types";
 
 /**
  * A4 calculation sheet mirroring the on-screen results: title block, headline
- * quantities, inputs, numbered working, assumptions, basis — with the
+ * quantities, inputs, numbered working, assumptions, and basis, with the
  * preliminary stamp and a standing disclaimer on every page.
  *
  * Embeds the app's IBM Plex faces (served from /public/fonts, fetched only
- * when an export happens) so engineering glyphs — ⁄, →, ≈, × — render
+ * when an export happens) so engineering glyphs (⁄, →, ≈, ×) render
  * correctly and the sheet matches the product's typography. Note: these Plex
  * builds carry no Greek, so engine formula strings avoid symbols like ρ.
  */
@@ -185,7 +185,7 @@ const s: Styles = {
   basisLabel: { fontWeight: 600 },
   // Footer = bare fixed Texts with absolute positions. Wrapping the footer
   // in a fixed absolute View trips a react-pdf v4 pagination bug that either
-  // drops it or stretches it across the page — bare Texts render reliably
+  // drops it or stretches it across the page; bare Texts render reliably
   // on every page (the library's own page-number pattern).
   footerDisclaimer: {
     position: "absolute",
@@ -217,11 +217,11 @@ export function CalcSheetDocument({ data }: { data: CalcSheetData }) {
 
   return (
     <Document
-      title={`${data.toolName} — calculation sheet`}
-      author="Msingi — Site engineer's toolkit"
+      title={`${data.toolName}: calculation sheet`}
+      author="Msingi: Site engineer's toolkit"
     >
       <Page size="A4" style={s.page}>
-        {/* Fixed chrome (brand + footer) is declared before flowing content —
+        {/* Fixed chrome (brand + footer) is declared before flowing content;
             react-pdf repeats fixed elements only from their first page on. */}
         <View style={s.brandRow} fixed>
           <View>
@@ -229,11 +229,11 @@ export function CalcSheetDocument({ data }: { data: CalcSheetData }) {
             <Text style={s.brandSub}>SITE ENGINEER&apos;S TOOLKIT</Text>
           </View>
           <View style={s.stampBox}>
-            <Text style={s.stampText}>PRELIMINARY — NOT FOR CONSTRUCTION</Text>
+            <Text style={s.stampText}>PRELIMINARY - NOT FOR CONSTRUCTION</Text>
           </View>
         </View>
         <Text style={s.footerDisclaimer} fixed>
-          Preliminary estimation aid only — not a design document. Every
+          Preliminary estimation aid only, not a design document. Every
           formula, input and assumption is stated on this sheet so it can be
           audited by a licensed engineer before use.
         </Text>
@@ -302,7 +302,7 @@ export function CalcSheetDocument({ data }: { data: CalcSheetData }) {
                     : { backgroundColor: NOTICE_BG, color: NOTICE },
                 ]}
               >
-                {w.level === "caution" ? "CAUTION — " : "NOTE — "}
+                {w.level === "caution" ? "CAUTION: " : "NOTE: "}
                 {w.message}
               </Text>
             ))}

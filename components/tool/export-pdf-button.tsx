@@ -48,7 +48,7 @@ export function ExportPdfButton({
       setOpen(false);
     } catch (error) {
       console.error("PDF export failed", error);
-      toast.error("The PDF couldn't be generated. Try again — nothing was lost.");
+      toast.error("The PDF couldn't be generated. Try again, nothing was lost.");
     } finally {
       setBusy(false);
     }

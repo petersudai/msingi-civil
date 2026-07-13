@@ -60,8 +60,8 @@ function LocalOnlyNotice() {
           <h2 className="text-[15px] font-semibold">Working in local mode</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Saved calculations are stored on this device and work fully offline.
-            Cloud backup isn&apos;t configured in this build — when it is, this
-            screen becomes sign-in. Nothing else about the tools changes.
+            Cloud backup isn&apos;t configured in this build. Once it is, this
+            screen becomes sign-in, and nothing else about the tools changes.
           </p>
         </div>
       </div>
@@ -231,7 +231,7 @@ function SignedIn({ email }: { email: string }) {
         </div>
         <p className="mt-3 text-[12.5px] leading-snug text-muted-foreground">
           Backup pushes this device&apos;s saved calculations to your account.
-          Restore merges your cloud copies onto this device — newer versions win.
+          Restore merges your cloud copies onto this device; newer versions win.
         </p>
       </div>
       <Button
@@ -239,7 +239,7 @@ function SignedIn({ email }: { email: string }) {
         className="h-12 w-full text-muted-foreground"
         onClick={async () => {
           await supabase?.auth.signOut();
-          toast.success("Signed out — your local data stays on this device.");
+          toast.success("Signed out. Your local data stays on this device.");
         }}
       >
         <LogOut aria-hidden="true" />

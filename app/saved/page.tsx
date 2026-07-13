@@ -43,7 +43,7 @@ export default function SavedPage() {
           <Bookmark className="size-6 text-muted-foreground" aria-hidden="true" />
           <h2 className="mt-3 font-heading text-lg font-bold">Nothing saved yet</h2>
           <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
-            Run a calculation in any tool and tap Save — it&apos;ll appear here,
+            Run a calculation in any tool and tap Save. It&apos;ll appear here,
             ready to reopen with the same inputs.
           </p>
           <Button asChild variant="outline" className="mt-4 h-12">

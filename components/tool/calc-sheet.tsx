@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { PreliminaryStamp } from "./preliminary-stamp";
 
 /**
- * The results sheet — the signature surface of the product. It renders any
+ * The results sheet, the signature surface of the product. It renders any
  * engine's `CalcResultBase` the way a hand calc sheet reads: title block,
  * headline quantities, numbered working, assumptions, and the standards
  * basis. The PDF export mirrors this layout.
@@ -118,7 +118,7 @@ export function CalcSheet({
         </dl>
       ) : null}
 
-      {/* Working — every number, shown in full */}
+      {/* Working: every number, shown in full */}
       <section aria-label="Working" className="border-b px-4 py-4 md:px-5">
         <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Working
@@ -187,7 +187,7 @@ export function CalcSheet({
           ))}
         </ul>
         <p className="mt-4 border-t pt-3 text-[11.5px] leading-snug text-muted-foreground">
-          Preliminary estimation aid only — not a design document. Verify all
+          Preliminary estimation aid only, not a design document. Verify all
           results with a licensed engineer before construction.
         </p>
       </section>

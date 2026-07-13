@@ -3,7 +3,7 @@ import type { CalcSheetData } from "./types";
 /**
  * Client-side PDF generation. Both @react-pdf/renderer and the document
  * component load lazily here, so the ~1 MB PDF engine never touches the
- * initial page load — it downloads the first time the user taps Export.
+ * initial page load; it downloads the first time the user taps Export.
  */
 export async function downloadCalcSheetPdf(data: CalcSheetData): Promise<void> {
   const [{ pdf }, { CalcSheetDocument }] = await Promise.all([

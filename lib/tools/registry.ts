@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 
 /**
- * The tool registry — the single source of truth for what tools exist.
+ * The tool registry: the single source of truth for what tools exist.
  *
  * Navigation, the home screen, saved-calculation records and PDF headers all
- * read from here. Adding a tool means: one entry here, one engine folder in
- * `lib/calculations/`, one route under `app/tools/` — nothing else changes.
+ * read from here. Adding a tool means one entry here, one engine folder in
+ * `lib/calculations/`, one route under `app/tools/`, and nothing else changes.
  */
 
 export type ToolCategory =
@@ -35,7 +35,7 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
 };
 
 export interface ToolDefinition {
-  /** Stable identifier — also the route segment and saved-calc key. */
+  /** Stable identifier; also the route segment and saved-calc key. */
   slug: string;
   name: string;
   /** One line: what it does, in the user's words. */

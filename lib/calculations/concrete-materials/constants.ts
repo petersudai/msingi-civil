@@ -75,7 +75,7 @@ export interface MixClass {
   /** Characteristic cube strength implied by the class, N/mm² (informative). */
   strengthMpa: number;
   ratio: MixRatio;
-  /** What this class is typically used for — shown as inline guidance. */
+  /** What this class is typically used for, shown as inline guidance. */
   typicalUse: string;
 }
 

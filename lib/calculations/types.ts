@@ -53,8 +53,8 @@ export interface Assumption {
  * never reach the engine; warnings are for inputs that are *possible* but
  * deserve a second look, or results that imply a practical concern.
  *
- * - `notice`  — informational; worth knowing, nothing suspicious.
- * - `caution` — physically plausible but unusual; verify before relying on it.
+ * - `notice`: informational, worth knowing, nothing suspicious.
+ * - `caution`: physically plausible but unusual; verify before relying on it.
  */
 export interface CalcWarning {
   level: "notice" | "caution";
@@ -69,7 +69,7 @@ export interface CalcQuantity {
   unit: string;
   /** Headline quantities render large; the rest go in the detail table. */
   emphasis?: boolean;
-  /** e.g. "38.02 bags exact — rounded up for purchasing". */
+  /** e.g. "38.02 bags exact, rounded up for purchasing". */
   note?: string;
 }
 

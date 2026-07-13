@@ -1,4 +1,4 @@
--- Msingi — initial schema.
+-- Msingi initial schema.
 -- Saved calculations, one row per record, owned by the signed-in user.
 -- Apply with: supabase db push, or paste into the Supabase SQL editor.
 

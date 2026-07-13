@@ -132,7 +132,7 @@ export function ConcreteMaterialsForm() {
   return (
     <FormProvider {...form}>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
-        {/* ——— Inputs ——— */}
+        {/* Inputs */}
         <form
           noValidate
           onSubmit={(e) => e.preventDefault()}
@@ -190,7 +190,7 @@ export function ConcreteMaterialsForm() {
           {mixSelection === "custom" ? (
             <div className="rounded-md border bg-muted/40 p-3">
               <p className="mb-2.5 text-[12.5px] text-muted-foreground">
-                Parts by volume, in cement : sand : ballast order — like the
+                Parts by volume, in cement : sand : ballast order, like the
                 &ldquo;1&rdquo;, &ldquo;2&rdquo; and &ldquo;4&rdquo; in 1:2:4.
               </p>
               <div className="grid grid-cols-3 gap-2.5">
@@ -234,7 +234,7 @@ export function ConcreteMaterialsForm() {
           </AdvancedSection>
         </form>
 
-        {/* ——— Results ——— */}
+        {/* Results */}
         <div className="space-y-4 lg:sticky lg:top-20" aria-live="polite">
           {live ? (
             <CalcSheet
@@ -260,11 +260,11 @@ export function ConcreteMaterialsForm() {
             />
           )}
           <HowItWorks
-            summary="You say how much compacted concrete you need; it works out the loose materials to order. Loose cement, sand and ballast lose roughly a third of their volume once mixed and compacted, so the tool multiplies your volume by a bulking factor (1.54 by default) to get the dry material volume, splits that between the three materials in your mix ratio, then converts each volume to mass — and cement to bags — using loose bulk densities."
+            summary="You say how much compacted concrete you need; it works out the loose materials to order. Loose cement, sand and ballast lose roughly a third of their volume once mixed and compacted, so the tool multiplies your volume by a bulking factor (1.54 by default) to get the dry material volume, splits that between the three materials in your mix ratio, then converts each volume to mass, and cement to bags, using loose bulk densities."
             points={[
               "Mix classes follow Kenyan site practice: Class 20 = 1:2:4, Class 25 = 1:1.5:3, and so on. The class number is the 28-day cube strength in N/mm².",
               "Cement is rounded up to whole bags for purchasing; the exact figure stays on the sheet so you can see the margin.",
-              "Quantities exclude wastage — add 3–5% when ordering.",
+              "Quantities exclude wastage, so add 3–5% when ordering.",
               "Every default (densities, bulking factor, bag size) can be overridden under Advanced assumptions, and whatever you use is printed on the sheet.",
             ]}
           />
@@ -313,11 +313,11 @@ function EmptyState({ onExample }: { onExample: () => void }) {
       </h2>
       <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
         Everything else is pre-filled with standard site values. You&apos;ll get
-        cement bags, sand and ballast tonnage — with the full working shown, ready
+        cement bags, sand and ballast tonnage, with the full working shown, ready
         to export as a calculation sheet.
       </p>
       <Button variant="outline" className="mt-4 h-12" onClick={onExample}>
-        Try an example — 6 m³ slab, Class 20
+        Try an example: 6 m³ slab, Class 20
       </Button>
     </div>
   );

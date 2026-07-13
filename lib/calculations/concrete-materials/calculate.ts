@@ -31,12 +31,12 @@ import type { ConcreteMaterialsInput } from "./schema";
  *    cement mass to bags.
  *
  * This is the standard estimating method for volumetric (nominal) mixes used
- * throughout East African practice. It is a takeoff aid — it does not design
+ * throughout East African practice. It is a takeoff aid: it does not design
  * the mix, and it says nothing about strength compliance of what is actually
  * batched on site.
  */
 
-/** Raw numeric outputs at full precision — the testable surface. */
+/** Raw numeric outputs at full precision: the testable surface. */
 export interface ConcreteMaterialsOutputs {
   wetVolumeM3: number;
   dryVolumeM3: number;
@@ -163,7 +163,7 @@ function buildQuantities(
       value: formatNumber(o.cement.bagsToBuy, 0),
       unit: `bags × ${formatTrimmed(input.bagSizeKg, 1)} kg`,
       emphasis: true,
-      note: `${formatNumber(o.cement.bagsExact, 2)} bags exact (${formatNumber(o.cement.massKg, 0)} kg) — rounded up for purchasing`,
+      note: `${formatNumber(o.cement.bagsExact, 2)} bags exact (${formatNumber(o.cement.massKg, 0)} kg), rounded up for purchasing`,
     },
     {
       label: "Sand (fine aggregate)",
@@ -234,7 +234,7 @@ function buildSteps(
       formula: "m_c = V_c × cement density ;  bags = m_c ⁄ bag mass",
       substitution: `m_c = ${formatNumber(o.cement.volumeM3, 3)} × ${formatNumber(input.cementDensityKgM3, 0)} = ${formatNumber(o.cement.massKg, 1)} kg ;  bags = ${formatNumber(o.cement.massKg, 1)} ⁄ ${formatTrimmed(input.bagSizeKg, 1)}`,
       result: `${formatNumber(o.cement.bagsExact, 2)} bags → buy ${formatNumber(o.cement.bagsToBuy, 0)}`,
-      note: "Bags are rounded up — you can't buy a fraction of a bag.",
+      note: "Bags are rounded up; you can't buy a fraction of a bag.",
     },
     {
       title: "Sand (fine aggregate) volume",
@@ -316,13 +316,13 @@ function buildWarnings(
   if (input.volumeM3 > VOLUME_LARGE_POUR_M3) {
     warnings.push({
       level: "notice",
-      message: `${formatNumber(input.volumeM3, 1)} m³ is a large pour — ready-mix supply may be more economical and gives better quality control than site batching.`,
+      message: `${formatNumber(input.volumeM3, 1)} m³ is a large pour. Ready-mix supply may be more economical and gives better quality control than site batching.`,
     });
   }
   if (input.volumeM3 < VOLUME_TINY_M3) {
     warnings.push({
       level: "notice",
-      message: `${formatNumber(input.volumeM3, 3)} m³ is a very small volume — the quantities below round to less than a single bag mix.`,
+      message: `${formatNumber(input.volumeM3, 3)} m³ is a very small volume; the quantities below round to less than a single bag mix.`,
     });
   }
   if (
@@ -331,19 +331,19 @@ function buildWarnings(
   ) {
     warnings.push({
       level: "caution",
-      message: `Bulking factor ${formatTrimmed(input.bulkingFactor, 3)} is outside the usual ${BULKING_FACTOR_TYPICAL_MIN}–${BULKING_FACTOR_TYPICAL_MAX} range — quantities will differ from standard takeoff figures.`,
+      message: `Bulking factor ${formatTrimmed(input.bulkingFactor, 3)} is outside the usual ${BULKING_FACTOR_TYPICAL_MIN}–${BULKING_FACTOR_TYPICAL_MAX} range, so quantities will differ from standard takeoff figures.`,
     });
   }
   if (o.ratio.fine > o.ratio.coarse) {
     warnings.push({
       level: "caution",
-      message: `The mix has more sand than ballast (${ratioLabel(o.ratio)}) — unusual for structural concrete. Check the ratio is in cement : sand : ballast order.`,
+      message: `The mix has more sand than ballast (${ratioLabel(o.ratio)}), which is unusual for structural concrete. Check the ratio is in cement : sand : ballast order.`,
     });
   }
   if (o.ratio.cement !== 1) {
     warnings.push({
       level: "notice",
-      message: `Ratio entered with cement part ${formatTrimmed(o.ratio.cement, 2)} (not 1). That's fine — it is equivalent to 1 : ${formatTrimmed(o.ratio.fine / o.ratio.cement, 2)} : ${formatTrimmed(o.ratio.coarse / o.ratio.cement, 2)}.`,
+      message: `Ratio entered with cement part ${formatTrimmed(o.ratio.cement, 2)} (not 1). That's fine: it is equivalent to 1 : ${formatTrimmed(o.ratio.fine / o.ratio.cement, 2)} : ${formatTrimmed(o.ratio.coarse / o.ratio.cement, 2)}.`,
     });
   }
 
@@ -357,7 +357,7 @@ const BASIS: SourceReference[] = [
     note: "Standard quantity-takeoff practice for volumetric mixes (dry volume = 1.54 × wet volume), as used in East African and Commonwealth estimating references.",
   },
   {
-    label: "Nominal mix classes — Kenyan practice",
+    label: "Nominal mix classes: Kenyan practice",
     note: "Class 15 (1:3:6), Class 20 (1:2:4), Class 25 (1:1.5:3), Class 30 (1:1:2) per Ministry of Works standard specifications; class number is the 28-day characteristic cube strength in N/mm².",
   },
   {

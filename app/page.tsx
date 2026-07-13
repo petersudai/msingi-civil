@@ -8,7 +8,7 @@ import { type ToolDefinition, toolHref, toolsByCategory } from "@/lib/tools/regi
 export default function HomePage() {
   return (
     <>
-      {/* Hero — the thesis: calculations with nothing hidden. */}
+      {/* Hero: the thesis is calculations with nothing hidden. */}
       <section className="bg-calc-grid border-b">
         <div className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -21,7 +21,7 @@ export default function HomePage() {
           </h1>
           <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Concrete takeoffs, rebar schedules and design checks that read like a
-            senior engineer&apos;s calc sheet — every formula, every assumption
+            senior engineer&apos;s calc sheet: every formula, every assumption,
             and the code basis, right on the page. Built to be used one-handed,
             in the sun, mid-pour.
           </p>
@@ -58,7 +58,7 @@ export default function HomePage() {
           ))}
         </div>
         <p className="mt-12 border-t pt-5 text-center text-[12px] text-muted-foreground">
-          Msingi v0.1 · Preliminary estimation aid — every result needs a licensed
+          Msingi v0.1 · Preliminary estimation aid. Every result needs a licensed
           engineer&apos;s review before use on site.
         </p>
       </section>

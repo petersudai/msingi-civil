@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * The product's standing disclaimer, styled as the drawing-office stamp every
- * engineer already knows. It renders on every tool page, every results sheet
- * and every exported PDF — it is part of the product, not fine print.
+ * engineer already knows. It renders on every tool page, every results sheet,
+ * and every exported PDF: it is part of the product, not fine print.
  */
 export function PreliminaryStamp({
   className,
@@ -21,7 +21,7 @@ export function PreliminaryStamp({
           className,
         )}
       >
-        Preliminary — not for construction
+        Preliminary - not for construction
       </p>
     );
   }
@@ -36,7 +36,7 @@ export function PreliminaryStamp({
       aria-label="Preliminary design aid notice"
     >
       <p className="font-heading text-sm font-bold uppercase tracking-[0.14em] text-stamp">
-        Preliminary — not for construction
+        Preliminary - not for construction
       </p>
       <p className="mt-1 text-[13px] leading-snug text-foreground/80">
         This is an estimation and preliminary design aid. Every result must be

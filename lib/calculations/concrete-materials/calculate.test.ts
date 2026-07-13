@@ -27,8 +27,8 @@ import {
  *                        sand 0.42 m³, ballast 0.84 m³
  *   1:1:2   (Class 30) → cement 554.4 kg  = 11.09 bags
  *
- * The widely quoted rules of thumb these produce — ~6.3 bags/m³ for 1:2:4 and
- * ~8 bags/m³ for 1:1.5:3 — are the sanity anchors for this module.
+ * The widely quoted rules of thumb these produce (~6.3 bags/m³ for 1:2:4 and
+ * ~8 bags/m³ for 1:1.5:3) are the sanity anchors for this module.
  */
 
 function baseInput(overrides: Partial<ConcreteMaterialsInput> = {}): ConcreteMaterialsInput {
@@ -44,7 +44,7 @@ function baseInput(overrides: Partial<ConcreteMaterialsInput> = {}): ConcreteMat
   };
 }
 
-describe("dry-volume method — reference values for 1 m³", () => {
+describe("dry-volume method: reference values for 1 m³", () => {
   it("Class 20 (1:2:4) matches the standard takeoff figures", () => {
     const r = calculateConcreteMaterials(baseInput());
     expect(r.outputs.dryVolumeM3).toBeCloseTo(1.54, 10);
@@ -237,7 +237,7 @@ describe("engine guards (defence in depth below the schema)", () => {
   });
 });
 
-describe("input schema — form-string coercion and human messages", () => {
+describe("input schema: form-string coercion and human messages", () => {
   it("parses raw form strings into numbers", () => {
     const parsed = concreteMaterialsInputSchema.parse({
       volumeM3: "6",

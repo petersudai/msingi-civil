@@ -3,7 +3,7 @@ import type { CalcResultBase } from "@/lib/calculations/types";
 /**
  * Everything the PDF calc sheet needs, framework-free. Kept separate from the
  * document component so UI code can import this type without pulling the
- * (heavy) @react-pdf/renderer bundle — that loads only when Export is tapped.
+ * (heavy) @react-pdf/renderer bundle, which loads only when Export is tapped.
  */
 export interface CalcSheetData {
   toolName: string;

@@ -6,7 +6,7 @@ import { calculateConcreteMaterials } from "@/lib/calculations/concrete-material
 /**
  * Smoke-renders the full PDF calc sheet in Node. Guards against regressions
  * that produce a broken document without throwing (missing fonts, dropped
- * fixed footer — see the notes in calc-sheet-document.tsx).
+ * fixed footer; see the notes in calc-sheet-document.tsx).
  *
  * Set PDF_SMOKE_OUT=<dir> to also write the PDF for visual inspection.
  */

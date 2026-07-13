@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /**
- * The Msingi wordmark. "Msingi" is Swahili for foundation — the mark is
+ * The Msingi wordmark. "Msingi" is Swahili for foundation; the mark is
  * three foundation courses stepping up out of the ground line.
  */
 export function Wordmark() {
@@ -9,7 +9,7 @@ export function Wordmark() {
     <Link
       href="/"
       className="flex items-center gap-2.5 rounded-sm outline-offset-4"
-      aria-label="Msingi — home"
+      aria-label="Msingi home"
     >
       <svg
         width="26"
