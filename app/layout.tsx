@@ -5,6 +5,7 @@ import {
   IBM_Plex_Sans_Condensed,
 } from "next/font/google";
 import "./globals.css";
+import { AppFooter } from "@/components/shell/app-footer";
 import { AppHeader } from "@/components/shell/app-header";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -58,7 +59,10 @@ export default function RootLayout({
         <TooltipProvider delayDuration={200}>
           <AppHeader />
           {/* Bottom padding clears the fixed mobile nav. */}
-          <main className="flex-1 pb-24 md:pb-12">{children}</main>
+          <main className="flex-1 pb-24 md:pb-12">
+            {children}
+            <AppFooter />
+          </main>
           <BottomNav />
           <Toaster position="top-center" />
         </TooltipProvider>

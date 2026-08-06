@@ -57,10 +57,6 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-        <p className="mt-12 border-t pt-5 text-center text-[12px] text-muted-foreground">
-          Msingi v0.1 · Preliminary estimation aid. Every result needs a licensed
-          engineer&apos;s review before use on site.
-        </p>
       </section>
     </>
   );
