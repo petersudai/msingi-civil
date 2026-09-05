@@ -149,6 +149,72 @@ export function CalcSheet({
         </ol>
       </section>
 
+      {/* Schedule tables, e.g. a bar bending schedule */}
+      {result.tables.map((table) => (
+        <section
+          key={table.title}
+          aria-label={table.title}
+          className="border-b px-4 py-4 md:px-5"
+        >
+          <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {table.title}
+          </h3>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[560px] border-collapse text-[12.5px]">
+              <thead>
+                <tr className="border-b">
+                  {table.columns.map((col) => (
+                    <th
+                      key={col.key}
+                      className={cn(
+                        "whitespace-nowrap py-1.5 pr-4 font-semibold text-muted-foreground",
+                        col.align === "right" ? "text-right" : "text-left",
+                      )}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {table.rows.map((row, i) => (
+                  <tr key={i} className="nums border-b border-dashed last:border-0">
+                    {table.columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={cn(
+                          "whitespace-nowrap py-1.5 pr-4",
+                          col.align === "right" ? "text-right" : "text-left",
+                        )}
+                      >
+                        {row[col.key]}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+              {table.totalsRow ? (
+                <tfoot>
+                  <tr className="nums border-t-2 border-foreground/80 font-semibold">
+                    {table.columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={cn(
+                          "whitespace-nowrap py-1.5 pr-4",
+                          col.align === "right" ? "text-right" : "text-left",
+                        )}
+                      >
+                        {table.totalsRow?.[col.key] ?? ""}
+                      </td>
+                    ))}
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          </div>
+        </section>
+      ))}
+
       {/* Assumptions */}
       <section aria-label="Assumptions" className="border-b px-4 py-4 md:px-5">
         <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">

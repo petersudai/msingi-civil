@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createElement } from "react";
 import { expect, it } from "vitest";
 import { calculateConcreteMaterials } from "@/lib/calculations/concrete-materials/calculate";
+import { calculateRebarTakeoff } from "@/lib/calculations/rebar-takeoff/calculate";
 
 /**
  * Smoke-renders the full PDF calc sheet in Node. Guards against regressions
@@ -61,5 +62,58 @@ it("renders the calc sheet PDF to a buffer", { timeout: 60_000 }, async () => {
   if (outDir) {
     mkdirSync(outDir, { recursive: true });
     writeFileSync(`${outDir}/msingi-smoke.pdf`, buffer);
+  }
+});
+
+/**
+ * Rebar takeoff exercises the generic schedule-table renderer added to the
+ * PDF document (the bar bending schedule), the first tool to use it.
+ */
+it("renders a calc sheet with a bar bending schedule table", { timeout: 60_000 }, async () => {
+  const { renderToBuffer } = await import("@react-pdf/renderer");
+  const { CalcSheetDocument } = await import("./calc-sheet-document");
+
+  const result = calculateRebarTakeoff({
+    memberType: "beam",
+    numberOfMembers: 1,
+    coverMm: 25,
+    memberLengthM: 4,
+    widthMm: 230,
+    depthMm: 450,
+    mainBarDiameterMm: 16,
+    mainBarCount: 4,
+    linkDiameterMm: 8,
+    linkSpacingMm: 150,
+    hookAllowanceMm: 100,
+    extraLengthMm: 0,
+  });
+
+  expect(result.tables).toHaveLength(1);
+
+  const buffer = await renderToBuffer(
+    createElement(CalcSheetDocument, {
+      data: {
+        toolName: "Rebar takeoff",
+        subtitle: "Beam · 4.0 m · 1 member(s)",
+        filename: "smoke-rebar.pdf",
+        inputsSummary: [
+          { label: "Member type", value: "Beam" },
+          { label: "Clear span", value: "4.000 m" },
+        ],
+        result,
+        generatedAt: "11 Jul 2026",
+      },
+    }) as import("react").ReactElement<
+      import("@react-pdf/renderer").DocumentProps
+    >,
+  );
+
+  expect(buffer.length).toBeGreaterThan(15_000);
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+
+  const outDir = process.env.PDF_SMOKE_OUT;
+  if (outDir) {
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(`${outDir}/msingi-smoke-rebar.pdf`, buffer);
   }
 });

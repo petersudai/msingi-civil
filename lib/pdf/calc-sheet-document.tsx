@@ -178,6 +178,43 @@ const s: Styles = {
     color: MUTED,
     marginTop: 1.5,
   },
+  tableHeaderRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderColor: INK,
+    paddingBottom: 3,
+    marginBottom: 3,
+  },
+  tableHeaderCell: {
+    flex: 1,
+    paddingRight: 6,
+    fontSize: 7,
+    fontWeight: 600,
+    color: MUTED,
+    textTransform: "uppercase",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 0.5,
+    borderColor: LINE,
+    paddingVertical: 2.5,
+  },
+  tableCell: { flex: 1, paddingRight: 6, fontFamily: "PlexMono", fontSize: 8 },
+  tableTotalsRow: {
+    flexDirection: "row",
+    borderTopWidth: 1.5,
+    borderColor: INK,
+    paddingTop: 3,
+    marginTop: 1,
+  },
+  tableTotalsCell: {
+    flex: 1,
+    paddingRight: 6,
+    fontFamily: "PlexMono",
+    fontWeight: 600,
+    fontSize: 8,
+  },
+  tableCellRight: { textAlign: "right" },
   assumptionRow: { marginBottom: 4 },
   assumptionMain: { flexDirection: "row", justifyContent: "space-between" },
   assumptionSource: { fontSize: 7, color: FAINT, marginTop: 1 },
@@ -353,6 +390,56 @@ export function CalcSheetDocument({ data }: { data: CalcSheetData }) {
             </View>
           ))}
         </View>
+
+        {/* Schedule tables, e.g. a bar bending schedule */}
+        {data.result.tables.map((table) => (
+          <View key={table.title} style={s.section}>
+            <Text style={s.sectionTitle}>{table.title}</Text>
+            <View style={s.tableHeaderRow} fixed>
+              {table.columns.map((col) => (
+                <Text
+                  key={col.key}
+                  style={[
+                    s.tableHeaderCell,
+                    col.align === "right" ? s.tableCellRight : {},
+                  ]}
+                >
+                  {col.label}
+                </Text>
+              ))}
+            </View>
+            {table.rows.map((row, i) => (
+              <View key={i} style={s.tableRow} wrap={false}>
+                {table.columns.map((col) => (
+                  <Text
+                    key={col.key}
+                    style={[
+                      s.tableCell,
+                      col.align === "right" ? s.tableCellRight : {},
+                    ]}
+                  >
+                    {row[col.key] ?? ""}
+                  </Text>
+                ))}
+              </View>
+            ))}
+            {table.totalsRow ? (
+              <View style={s.tableTotalsRow} wrap={false}>
+                {table.columns.map((col) => (
+                  <Text
+                    key={col.key}
+                    style={[
+                      s.tableTotalsCell,
+                      col.align === "right" ? s.tableCellRight : {},
+                    ]}
+                  >
+                    {table.totalsRow?.[col.key] ?? ""}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ))}
 
         {/* Assumptions */}
         <View style={s.section}>

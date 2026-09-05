@@ -73,6 +73,27 @@ export interface CalcQuantity {
   note?: string;
 }
 
+/** One column of a {@link CalcTable}. */
+export interface CalcTableColumn {
+  /** Matches a key in each row's record. */
+  key: string;
+  label: string;
+  align?: "left" | "right";
+}
+
+/**
+ * A schedule-style tabular output, e.g. a bar bending schedule or a member
+ * force table. Rows and the optional totals row are display-ready strings
+ * keyed by column `key`, same shape as {@link CalcQuantity} values.
+ */
+export interface CalcTable {
+  title: string;
+  columns: CalcTableColumn[];
+  rows: Array<Record<string, string>>;
+  /** Optional summary row rendered with emphasis under the body rows. */
+  totalsRow?: Record<string, string>;
+}
+
 /** The renderable envelope every engine returns. */
 export interface CalcResultBase {
   /** One-line method statement, e.g. "Dry-volume (nominal mix) estimation". */
@@ -81,6 +102,8 @@ export interface CalcResultBase {
   quantities: CalcQuantity[];
   /** Numbered working, in calculation order. */
   steps: WorkingStep[];
+  /** Schedule-style tables, e.g. a bar bending schedule. Empty if not used. */
+  tables: CalcTable[];
   /** Every assumption the numbers depend on. */
   assumptions: Assumption[];
   /** Sanity flags for the current inputs/results. */

@@ -59,13 +59,15 @@ Every engine is a pure function returning `CalcResultBase`:
 
 - `quantities`: display-ready outputs (headline items flagged)
 - `steps`: numbered working, formula, substitution, result, note
+- `tables`: optional schedule-style outputs, e.g. a bar bending schedule
+  (columns + rows + an optional totals row, all display-ready strings)
 - `assumptions`: every value the numbers depend on, with its source
 - `warnings`: non-blocking sanity flags (`notice` / `caution`)
 - `basis`: code / standard / practice references
 
 `CalcSheet` (screen) and `CalcSheetDocument` (PDF) render this shape
-generically, so a new tool gets show-your-work, the disclaimer stamp, and PDF
-export for free.
+generically, so a new tool gets show-your-work, the disclaimer stamp, PDF
+export, and (if it returns one) a schedule table, for free.
 
 ### Adding tool #N (mechanical, by design)
 
@@ -111,9 +113,15 @@ requirement.
 ## Calculation verification
 
 Engine tests validate against standard reference values (see the header
-comment in `calculate.test.ts`). For concrete materials (dry-volume method,
-k = 1.54, 50 kg bags): 1:2:4 → 6.34 bags/m³, 1:1.5:3 → 8.06 bags/m³,
-1:3:6 → 4.44 bags/m³, 1:1:2 → 11.09 bags/m³, matching the quantities
-handbooks used in East African and Commonwealth practice.
+comment in each `calculate.test.ts`).
+
+- **Concrete materials** (dry-volume method, k = 1.54, 50 kg bags):
+  1:2:4 → 6.34 bags/m³, 1:1.5:3 → 8.06 bags/m³, 1:3:6 → 4.44 bags/m³,
+  1:1:2 → 11.09 bags/m³, matching the quantities handbooks used in East
+  African and Commonwealth practice.
+- **Rebar takeoff**: bar unit weights are checked against the published
+  BS 4449 / IS 1786 nominal mass table (e.g. 16 mm → 1.578 kg/m,
+  20 mm → 2.466 kg/m); beam, column and slab totals are cross-checked
+  against independently hand-derived worked examples.
 
 **House rule: no UI for a calculation until its engine tests pass.**

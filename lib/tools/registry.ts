@@ -65,7 +65,7 @@ export const TOOLS: readonly ToolDefinition[] = [
       "Total steel weight, cut lengths and a bar bending schedule per member.",
     category: "materials",
     icon: Grid3x3,
-    status: "coming-soon",
+    status: "available",
     phase: 2,
   },
   {

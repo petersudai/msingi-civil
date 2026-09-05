@@ -140,6 +140,7 @@ export function calculateConcreteMaterials(
     outputs,
     quantities: buildQuantities(input, outputs),
     steps: buildSteps(input, outputs),
+    tables: [],
     assumptions: buildAssumptions(input),
     warnings: buildWarnings(input, outputs),
     basis: BASIS,
