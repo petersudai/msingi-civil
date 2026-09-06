@@ -147,9 +147,13 @@ export function ConcreteMaterialsForm() {
             hint="Wet, compacted volume: length × width × thickness. A 6 m × 5 m slab at 150 mm is 4.5 m³."
           />
 
-          {/* Mix class selector */}
-          <fieldset>
-            <legend className="mb-1.5 text-[13px] font-semibold">Mix class</legend>
+          {/* Mix class selector. A plain div, not <fieldset>: fieldsets
+              carry a browser default that refuses to shrink below their
+              content's natural width, which forces the whole page wider
+              than the viewport on mobile, and `min-width: 0` doesn't
+              reliably override it in every engine. */}
+          <div>
+            <p className="mb-1.5 text-[13px] font-semibold">Mix class</p>
             <div
               role="radiogroup"
               aria-label="Mix class"
@@ -185,7 +189,7 @@ export function ConcreteMaterialsForm() {
                 strength. Typical use: {selectedClass.typicalUse.toLowerCase()}.
               </p>
             ) : null}
-          </fieldset>
+          </div>
 
           {mixSelection === "custom" ? (
             <div className="rounded-md border bg-muted/40 p-3">

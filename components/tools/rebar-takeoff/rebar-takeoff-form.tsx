@@ -120,9 +120,13 @@ export function RebarTakeoffForm() {
           className="space-y-4 rounded-lg border bg-card p-4 md:p-5"
           aria-label="Calculation inputs"
         >
-          {/* Member type selector */}
-          <fieldset>
-            <legend className="mb-1.5 text-[13px] font-semibold">Member type</legend>
+          {/* Member type selector. A plain div, not <fieldset>: fieldsets
+              carry a browser default that refuses to shrink below their
+              content's natural width, which forces the whole page wider
+              than the viewport on mobile, and `min-width: 0` doesn't
+              reliably override it in every engine. */}
+          <div>
+            <p className="mb-1.5 text-[13px] font-semibold">Member type</p>
             <div role="radiogroup" aria-label="Member type" className="grid grid-cols-3 gap-2">
               {MEMBER_TYPES.map((type) => (
                 <MemberChip
@@ -135,7 +139,7 @@ export function RebarTakeoffForm() {
                 />
               ))}
             </div>
-          </fieldset>
+          </div>
 
           <NumberField
             name="numberOfMembers"
