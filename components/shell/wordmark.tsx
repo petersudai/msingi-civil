@@ -8,7 +8,7 @@ export function Wordmark() {
   return (
     <Link
       href="/"
-      className="flex items-center gap-2.5 rounded-sm outline-offset-4"
+      className="flex min-h-11 items-center gap-2.5 rounded-sm outline-offset-4"
       aria-label="Msingi home"
     >
       <svg
@@ -26,7 +26,7 @@ export function Wordmark() {
         <span className="nums text-[15px] font-semibold tracking-[0.28em] text-foreground">
           MSINGI
         </span>
-        <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="mt-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
           Site engineer&apos;s toolkit
         </span>
       </span>

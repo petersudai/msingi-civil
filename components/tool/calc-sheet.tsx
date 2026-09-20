@@ -34,7 +34,7 @@ export function CalcSheet({
       <header className="border-b-2 border-foreground/80 px-4 py-3 md:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Calculation sheet
             </p>
             <h2 className="mt-0.5 font-heading text-xl font-bold leading-tight">
@@ -159,6 +159,7 @@ export function CalcSheet({
           <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {table.title}
           </h3>
+          <p className="mt-1 text-xs text-muted-foreground md:hidden">Swipe sideways to see every column.</p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] border-collapse text-[12.5px]">
               <thead>

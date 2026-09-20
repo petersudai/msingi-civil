@@ -131,7 +131,7 @@ export function ConcreteMaterialsForm() {
 
   return (
     <FormProvider {...form}>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
         {/* Inputs */}
         <form
           noValidate
@@ -320,7 +320,7 @@ function EmptyState({ onExample }: { onExample: () => void }) {
         cement bags, sand and ballast tonnage, with the full working shown, ready
         to export as a calculation sheet.
       </p>
-      <Button variant="outline" className="mt-4 h-12" onClick={onExample}>
+      <Button variant="outline" className="mt-4 h-auto min-h-12 whitespace-normal py-2 text-left" onClick={onExample}>
         Try an example: 6 m³ slab, Class 20
       </Button>
     </div>

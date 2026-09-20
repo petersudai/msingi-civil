@@ -50,7 +50,7 @@ export function DiameterField({
         <SelectTrigger
           id={id}
           className={
-            "h-12 w-full bg-card text-base " +
+            "w-full bg-card text-base data-[size=default]:h-12 " +
             (errorText ? "border-destructive" : "")
           }
         >

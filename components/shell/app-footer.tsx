@@ -18,7 +18,7 @@ export function AppFooter() {
             href="https://sudaidevfolio.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="inline-block py-2 font-medium text-foreground underline-offset-4 hover:underline"
           >
             Peter Sudai
           </a>

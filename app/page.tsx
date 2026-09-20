@@ -98,7 +98,7 @@ function ComingSoonCard({ tool }: { tool: ToolDefinition }) {
       <span className="flex-1">
         <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-muted-foreground">
           {tool.name}
-          <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-wide">
+          <Badge variant="outline" className="text-[11px] font-medium uppercase tracking-wide">
             In build · Phase {tool.phase}
           </Badge>
         </span>

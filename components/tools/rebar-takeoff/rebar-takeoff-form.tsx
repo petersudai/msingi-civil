@@ -112,7 +112,7 @@ export function RebarTakeoffForm() {
 
   return (
     <FormProvider {...form}>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
         {/* Inputs */}
         <form
           noValidate
@@ -335,7 +335,7 @@ function EmptyState({ onExample }: { onExample: () => void }) {
         Pick a member type, then its dimensions and bars. You&apos;ll get total
         steel weight and a bar bending schedule, ready to export.
       </p>
-      <Button variant="outline" className="mt-4 h-12" onClick={onExample}>
+      <Button variant="outline" className="mt-4 h-auto min-h-12 whitespace-normal py-2 text-left" onClick={onExample}>
         Try an example: 4 m beam, 4T16 main, T8 links
       </Button>
     </div>

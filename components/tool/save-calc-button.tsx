@@ -25,7 +25,7 @@ export function SaveCalcButton({
     <Button
       size="sm"
       variant="outline"
-      className="h-10"
+      className="h-11"
       onClick={() => {
         save({ toolSlug, title, inputs });
         toast.success("Saved on this device", {

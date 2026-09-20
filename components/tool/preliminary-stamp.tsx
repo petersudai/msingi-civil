@@ -17,7 +17,7 @@ export function PreliminaryStamp({
     return (
       <p
         className={cn(
-          "inline-block border-2 border-stamp px-2 py-1 font-heading text-[11px] font-bold uppercase leading-tight tracking-[0.12em] text-stamp",
+          "inline-block border-2 border-stamp px-2 py-1 font-heading text-xs font-bold uppercase leading-tight tracking-[0.12em] text-stamp",
           className,
         )}
       >

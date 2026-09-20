@@ -57,7 +57,7 @@ export function ExportPdfButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="h-10">
+        <Button size="sm" className="h-11">
           <FileDown aria-hidden="true" />
           Export PDF
         </Button>
