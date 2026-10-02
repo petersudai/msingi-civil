@@ -9,13 +9,7 @@
  */
 export const STEEL_DENSITY_KG_M3 = 7850;
 
-/**
- * Standard commercial deformed bar diameters, mm. Matches the sizes stocked
- * by East African steel mills (Devki, Apex, Mabati) and the BS 4449 / KS
- * range: 6, 8, 10, 12, 16, 20, 25, 32, 40.
- */
-export const STANDARD_BAR_DIAMETERS_MM = [6, 8, 10, 12, 16, 20, 25, 32, 40] as const;
-export type StandardBarDiameter = (typeof STANDARD_BAR_DIAMETERS_MM)[number];
+export { STANDARD_BAR_DIAMETERS_MM, type StandardBarDiameter } from "../reinforcement";
 
 /** Typical concrete cover to reinforcement, mm; overridable per member. */
 export const DEFAULT_COVER_MM = 25;

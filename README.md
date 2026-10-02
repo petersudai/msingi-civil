@@ -38,9 +38,15 @@ lib/
       schema.ts          # Zod input schema + human error messages + defaults
       calculate.ts       # calculate(input) -> result (with working/assumptions)
       calculate.test.ts  # tests vs reference values, must pass before UI work
+    beam-design/
+      codes/             # pluggable design codes: ec2.ts, bs8110.ts, index.ts
+      calculate.ts       # code-agnostic orchestrator (loads, bars, links, checks)
+    reinforcement.ts     # standard bar sizes and areas shared by rebar tools
+  forms/                 # parseResolver: RHF resolver from a plain parse fn
   tools/registry.ts      # single source of truth for what tools exist
   pdf/                   # PDF calc sheet (lazy-loaded on Export click)
-  store/                 # zustand: saved calcs (localStorage), report meta
+  store/                 # zustand: saved calcs (localStorage), report meta,
+                         # one-shot tool-to-tool hand-off (beam -> rebar)
   supabase/              # env-gated client + explicit backup/restore
 components/
   tool/                  # shared tool chrome: ToolShell, CalcSheet, stamp,
@@ -61,6 +67,9 @@ Every engine is a pure function returning `CalcResultBase`:
 - `steps`: numbered working, formula, substitution, result, note
 - `tables`: optional schedule-style outputs, e.g. a bar bending schedule
   (columns + rows + an optional totals row, all display-ready strings)
+- `checks`: demand-versus-capacity design checks (label, demand, capacity,
+  utilisation, pass/fail, code clause), rendered as a verdict banner with
+  utilisation bars; empty for pure estimating tools
 - `assumptions`: every value the numbers depend on, with its source
 - `warnings`: non-blocking sanity flags (`notice` / `caution`)
 - `basis`: code / standard / practice references
@@ -68,6 +77,18 @@ Every engine is a pure function returning `CalcResultBase`:
 `CalcSheet` (screen) and `CalcSheetDocument` (PDF) render this shape
 generically, so a new tool gets show-your-work, the disclaimer stamp, PDF
 export, and (if it returns one) a schedule table, for free.
+
+### Pluggable design codes
+
+Design tools that depend on a code (RC beam check) put each code behind a
+`BeamCode` interface, so the orchestrator never knows which code it drives.
+Eurocode 2 and BS 8110 are both built in; a third code is one new file in
+`codes/` plus one line in `codes/index.ts`. Switching code in the UI resets
+grades, load factors and densities to that code's defaults as a set, and the
+sheet states the code behind every number. Kenya has adopted the Eurocodes,
+but the Kenya National Annex values are **not** applied: Eurocode 2 uses the
+EN recommended partial factors with alpha_cc defaulted to 0.85 (overridable
+under Advanced), and the sheet says so.
 
 ### Adding tool #N (mechanical, by design)
 
@@ -123,5 +144,15 @@ comment in each `calculate.test.ts`).
   BS 4449 / IS 1786 nominal mass table (e.g. 16 mm → 1.578 kg/m,
   20 mm → 2.466 kg/m); beam, column and slab totals are cross-checked
   against independently hand-derived worked examples.
+
+- **RC beam check**: Eurocode 2 flexure is anchored to a published worked
+  example (tension steel within 1%, compression steel within 3%); the BS 8110
+  tension term is checked against a published value; every other number is
+  hand-derived in the test file and back-checked by force equilibrium (the
+  provided steel is run through the stress block and must carry the design
+  moment). Two published online examples disagreed with the code formulas and
+  were deliberately not used as anchors; the test header says why.
+  Not covered: deflection and crack width, anchorage and curtailment, torsion,
+  flanged sections, moment redistribution.
 
 **House rule: no UI for a calculation until its engine tests pass.**

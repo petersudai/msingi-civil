@@ -72,10 +72,10 @@ export const TOOLS: readonly ToolDefinition[] = [
     slug: "beam-design",
     name: "RC beam check",
     description:
-      "Flexural steel required and shear capacity check for a given section.",
+      "Flexural steel and shear links for a rectangular beam, to Eurocode 2 or BS 8110, with clauses cited.",
     category: "structural",
     icon: RectangleHorizontal,
-    status: "coming-soon",
+    status: "available",
     phase: 3,
   },
   {

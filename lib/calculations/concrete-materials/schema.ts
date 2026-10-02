@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { omitKeys } from "../omit-keys";
 import {
   BULKING_FACTOR_MAX,
   BULKING_FACTOR_MIN,
@@ -136,3 +137,13 @@ export const concreteMaterialsDefaults = {
 
 /** The raw string shape the form works with before validation. */
 export type ConcreteMaterialsFormValues = typeof concreteMaterialsDefaults;
+
+/**
+ * The one way to turn raw form values into a validated input. The custom mix
+ * ratio only counts while Custom is selected, so a stale invalid value left in
+ * those hidden fields can never block the result.
+ */
+export function parseConcreteMaterialsInput(values: Partial<ConcreteMaterialsFormValues>) {
+  const inactive = values.mixSelection === "custom" ? [] : ["customCement", "customFine", "customCoarse"];
+  return concreteMaterialsInputSchema.safeParse(omitKeys(values, inactive));
+}

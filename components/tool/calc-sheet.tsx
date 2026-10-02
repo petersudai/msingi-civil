@@ -1,5 +1,5 @@
-import { AlertTriangle, Info } from "lucide-react";
-import type { CalcResultBase } from "@/lib/calculations/types";
+import { AlertTriangle, CircleCheck, CircleX, Info } from "lucide-react";
+import type { CalcCheck, CalcResultBase } from "@/lib/calculations/types";
 import { cn } from "@/lib/utils";
 import { PreliminaryStamp } from "./preliminary-stamp";
 
@@ -75,6 +75,9 @@ export function CalcSheet({
           </div>
         ))}
       </div>
+
+      {/* Pass/fail design checks */}
+      {result.checks.length > 0 ? <ChecksSection checks={result.checks} /> : null}
 
       {/* Warnings */}
       {result.warnings.length > 0 ? (
@@ -258,6 +261,82 @@ export function CalcSheet({
           results with a licensed engineer before construction.
         </p>
       </section>
+    </section>
+  );
+}
+
+/**
+ * The design-check block: one overall verdict first (an engineer reads this
+ * before anything else), then each check with its demand, capacity and
+ * utilisation so the margin is visible at a glance.
+ */
+function ChecksSection({ checks }: { checks: CalcCheck[] }) {
+  const failed = checks.filter((c) => c.status === "fail");
+  const allPass = failed.length === 0;
+
+  return (
+    <section aria-label="Design checks" className="border-b">
+      <div
+        role={allPass ? "status" : "alert"}
+        className={cn(
+          "flex items-start gap-2.5 px-4 py-3 text-sm font-semibold md:px-5",
+          allPass ? "bg-pass-bg text-pass" : "bg-destructive/10 text-destructive",
+        )}
+      >
+        {allPass ? (
+          <CircleCheck className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+        ) : (
+          <CircleX className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+        )}
+        <span>
+          {allPass
+            ? "Section adequate: all checks pass"
+            : `Section not adequate: ${failed.length} check${failed.length === 1 ? "" : "s"} failed`}
+        </span>
+      </div>
+      <ul className="divide-y px-4 md:px-5">
+        {checks.map((c) => (
+          <li key={c.label} className="py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold">{c.label}</p>
+                {c.clause ? (
+                  <p className="text-xs text-muted-foreground">{c.clause}</p>
+                ) : null}
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide",
+                  c.status === "pass"
+                    ? "bg-pass-bg text-pass"
+                    : "bg-destructive/10 text-destructive",
+                )}
+              >
+                {c.status}
+              </span>
+            </div>
+            <p className="nums mt-1 text-[12.5px] text-muted-foreground">
+              {c.demand} <span aria-hidden="true">of</span>
+              <span className="sr-only"> against a limit of </span> {c.capacity}
+              <span className="ml-2 font-semibold text-foreground">
+                {Math.round(c.utilisation * 100)}%
+              </span>
+            </p>
+            <div
+              className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"
+              role="presentation"
+            >
+              <div
+                className={cn(
+                  "h-full rounded-full",
+                  c.status === "pass" ? "bg-pass" : "bg-destructive",
+                )}
+                style={{ width: `${Math.min(100, Math.max(2, c.utilisation * 100))}%` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Grid3x3 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
@@ -13,6 +12,7 @@ import { DiameterField } from "@/components/tool/diameter-field";
 import { ExportPdfButton } from "@/components/tool/export-pdf-button";
 import { HowItWorks } from "@/components/tool/how-it-works";
 import { NumberField } from "@/components/tool/number-field";
+import { OptionChips } from "@/components/tool/option-chips";
 import { SaveCalcButton } from "@/components/tool/save-calc-button";
 import { Button } from "@/components/ui/button";
 import { calculateRebarTakeoff } from "@/lib/calculations/rebar-takeoff/calculate";
@@ -22,17 +22,20 @@ import {
   STANDARD_BAR_DIAMETERS_MM,
 } from "@/lib/calculations/rebar-takeoff/constants";
 import {
+  parseRebarTakeoffInput,
   rebarTakeoffDefaults,
   rebarTakeoffInputSchema,
   type MemberTypeSelection,
+  type RebarTakeoffFormValues,
 } from "@/lib/calculations/rebar-takeoff/schema";
 import { formatTrimmed } from "@/lib/calculations/format";
+import { parseResolver } from "@/lib/forms/parse-resolver";
 import type { CalcSheetData } from "@/lib/pdf/types";
 import type { ReportMeta } from "@/lib/store/report-meta";
+import { useHandoff } from "@/lib/store/handoff";
 import { useSavedCalculations } from "@/lib/store/saved-calculations";
-import { cn } from "@/lib/utils";
 
-type FormInput = z.input<typeof rebarTakeoffInputSchema>;
+type FormValues = RebarTakeoffFormValues;
 type FormOutput = z.output<typeof rebarTakeoffInputSchema>;
 
 const TOOL_SLUG = "rebar-takeoff";
@@ -45,11 +48,20 @@ export function RebarTakeoffForm() {
   const savedItems = useSavedCalculations((s) => s.items);
   const loadedSavedId = useRef<string | null>(null);
 
-  const form = useForm<FormInput, unknown, FormOutput>({
-    resolver: standardSchemaResolver(rebarTakeoffInputSchema),
+  const form = useForm<FormValues, unknown, FormOutput>({
+    resolver: parseResolver(parseRebarTakeoffInput),
     defaultValues: rebarTakeoffDefaults,
     mode: "onTouched",
   });
+
+  // Arriving from another tool (beam design): take its pre-fill once.
+  useEffect(() => {
+    const pending = useHandoff.getState().takeRebar();
+    if (pending) {
+      form.reset({ ...rebarTakeoffDefaults, ...pending });
+      toast.info("Pre-filled from your beam design. Check the clear span and details.");
+    }
+  }, [form]);
 
   // Reopen a saved calculation: /tools/rebar-takeoff?saved=<id>
   useEffect(() => {
@@ -67,7 +79,7 @@ export function RebarTakeoffForm() {
   // Live calculation: recompute whenever the current values parse cleanly.
   const values = form.watch();
   const live = useMemo(() => {
-    const parsed = rebarTakeoffInputSchema.safeParse(values);
+    const parsed = parseRebarTakeoffInput(values);
     if (!parsed.success) return null;
     try {
       return {
@@ -120,26 +132,16 @@ export function RebarTakeoffForm() {
           className="space-y-4 rounded-lg border bg-card p-4 md:p-5"
           aria-label="Calculation inputs"
         >
-          {/* Member type selector. A plain div, not <fieldset>: fieldsets
-              carry a browser default that refuses to shrink below their
-              content's natural width, which forces the whole page wider
-              than the viewport on mobile, and `min-width: 0` doesn't
-              reliably override it in every engine. */}
-          <div>
-            <p className="mb-1.5 text-[13px] font-semibold">Member type</p>
-            <div role="radiogroup" aria-label="Member type" className="grid grid-cols-3 gap-2">
-              {MEMBER_TYPES.map((type) => (
-                <MemberChip
-                  key={type}
-                  selected={memberType === type}
-                  onSelect={() =>
-                    form.setValue("memberType", type, { shouldValidate: true })
-                  }
-                  title={MEMBER_TYPE_LABELS[type]}
-                />
-              ))}
-            </div>
-          </div>
+          <OptionChips
+            label="Member type"
+            columnsClassName="grid-cols-3"
+            value={memberType}
+            onChange={(v) => form.setValue("memberType", v, { shouldValidate: true })}
+            options={MEMBER_TYPES.map((type) => ({
+              value: type,
+              label: MEMBER_TYPE_LABELS[type],
+            }))}
+          />
 
           <NumberField
             name="numberOfMembers"
@@ -294,33 +296,6 @@ export function RebarTakeoffForm() {
         </div>
       </div>
     </FormProvider>
-  );
-}
-
-function MemberChip({
-  selected,
-  onSelect,
-  title,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  title: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onSelect}
-      className={cn(
-        "flex min-h-14 items-center justify-center rounded-md border px-3 py-2 text-center text-sm font-semibold transition-colors",
-        selected
-          ? "border-primary bg-accent text-accent-foreground ring-1 ring-primary"
-          : "bg-card hover:bg-muted",
-      )}
-    >
-      {title}
-    </button>
   );
 }
 

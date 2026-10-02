@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { omitKeys } from "../omit-keys";
 import {
   COVER_MAX_MM,
   COVER_MIN_MM,
@@ -202,3 +203,31 @@ export const rebarTakeoffDefaults = {
 };
 
 export type RebarTakeoffFormValues = typeof rebarTakeoffDefaults;
+
+const LINEAR_ONLY_FIELDS = [
+  "memberLengthM",
+  "widthMm",
+  "depthMm",
+  "mainBarCount",
+  "linkDiameterMm",
+  "linkSpacingMm",
+  "hookAllowanceMm",
+  "extraLengthMm",
+] as const;
+const SLAB_ONLY_FIELDS = [
+  "panelLengthM",
+  "panelWidthM",
+  "mainBarSpacingMm",
+  "distBarDiameterMm",
+  "distBarSpacingMm",
+] as const;
+
+/**
+ * The one way to turn raw form values into a validated input. Only the fields
+ * for the selected member type count, so a stale invalid value left in a
+ * hidden field can never block the result.
+ */
+export function parseRebarTakeoffInput(values: Partial<RebarTakeoffFormValues>) {
+  const inactive = values.memberType === "slab" ? LINEAR_ONLY_FIELDS : SLAB_ONLY_FIELDS;
+  return rebarTakeoffInputSchema.safeParse(omitKeys(values, inactive));
+}

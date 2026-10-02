@@ -117,3 +117,37 @@ it("renders a calc sheet with a bar bending schedule table", { timeout: 60_000 }
     writeFileSync(`${outDir}/msingi-smoke-rebar.pdf`, buffer);
   }
 });
+
+it("renders a beam check sheet with the design checks section", { timeout: 60_000 }, async () => {
+  const { renderToBuffer } = await import("@react-pdf/renderer");
+  const { CalcSheetDocument } = await import("./calc-sheet-document");
+  const { calculateBeamDesign } = await import("@/lib/calculations/beam-design/calculate");
+  const { parseBeamDesignInput, beamDesignDefaults } = await import(
+    "@/lib/calculations/beam-design/schema"
+  );
+
+  const parsed = parseBeamDesignInput(beamDesignDefaults);
+  if (!parsed.success) throw new Error("default beam input should parse");
+  const result = calculateBeamDesign(parsed.data);
+  expect(result.checks.length).toBeGreaterThan(0);
+
+  const buffer = await renderToBuffer(
+    createElement(CalcSheetDocument, {
+      data: {
+        toolName: "RC beam check",
+        subtitle: "EC2 · 250 × 500 mm · 5 m",
+        filename: "beam-smoke.pdf",
+        inputsSummary: [{ label: "Design code", value: "Eurocode 2" }],
+        result,
+        generatedAt: "11 Jul 2026",
+      },
+    }) as import("react").ReactElement<import("@react-pdf/renderer").DocumentProps>,
+  );
+
+  expect(buffer.length).toBeGreaterThan(20_000);
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  if (process.env.PDF_SMOKE_OUT) {
+    mkdirSync(process.env.PDF_SMOKE_OUT, { recursive: true });
+    writeFileSync(`${process.env.PDF_SMOKE_OUT}/beam-smoke.pdf`, buffer);
+  }
+});

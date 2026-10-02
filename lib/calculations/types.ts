@@ -94,6 +94,24 @@ export interface CalcTable {
   totalsRow?: Record<string, string>;
 }
 
+/**
+ * One pass/fail design check, e.g. "Shear stress within section limit".
+ * Used by the design tools (beams, columns) where a result is only useful
+ * alongside a clear statement of whether the section works.
+ */
+export interface CalcCheck {
+  label: string;
+  /** Display-ready demand, e.g. "142.0 kN". */
+  demand: string;
+  /** Display-ready limit/capacity, e.g. "310.4 kN". */
+  capacity: string;
+  /** demand ÷ capacity. Above 1 is a fail. */
+  utilisation: number;
+  status: "pass" | "fail";
+  /** Clause or note this check comes from, e.g. "EN 1992-1-1, cl. 6.2.3". */
+  clause?: string;
+}
+
 /** The renderable envelope every engine returns. */
 export interface CalcResultBase {
   /** One-line method statement, e.g. "Dry-volume (nominal mix) estimation". */
@@ -104,6 +122,8 @@ export interface CalcResultBase {
   steps: WorkingStep[];
   /** Schedule-style tables, e.g. a bar bending schedule. Empty if not used. */
   tables: CalcTable[];
+  /** Pass/fail design checks. Empty for pure takeoff tools. */
+  checks: CalcCheck[];
   /** Every assumption the numbers depend on. */
   assumptions: Assumption[];
   /** Sanity flags for the current inputs/results. */

@@ -1,6 +1,5 @@
 "use client";
 
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { PencilRuler } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
@@ -12,6 +11,7 @@ import { CalcSheet } from "@/components/tool/calc-sheet";
 import { ExportPdfButton } from "@/components/tool/export-pdf-button";
 import { HowItWorks } from "@/components/tool/how-it-works";
 import { NumberField } from "@/components/tool/number-field";
+import { OptionChips } from "@/components/tool/option-chips";
 import { SaveCalcButton } from "@/components/tool/save-calc-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,15 +25,17 @@ import {
 import {
   concreteMaterialsDefaults,
   type ConcreteMaterialsFormValues,
+  type MixSelection,
   concreteMaterialsInputSchema,
+  parseConcreteMaterialsInput,
 } from "@/lib/calculations/concrete-materials/schema";
 import { formatTrimmed } from "@/lib/calculations/format";
+import { parseResolver } from "@/lib/forms/parse-resolver";
 import type { CalcSheetData } from "@/lib/pdf/types";
 import type { ReportMeta } from "@/lib/store/report-meta";
 import { useSavedCalculations } from "@/lib/store/saved-calculations";
-import { cn } from "@/lib/utils";
 
-type FormInput = z.input<typeof concreteMaterialsInputSchema>;
+type FormValues = ConcreteMaterialsFormValues;
 type FormOutput = z.output<typeof concreteMaterialsInputSchema>;
 
 const TOOL_SLUG = "concrete-materials";
@@ -45,8 +47,8 @@ export function ConcreteMaterialsForm() {
   const savedItems = useSavedCalculations((s) => s.items);
   const loadedSavedId = useRef<string | null>(null);
 
-  const form = useForm<FormInput, unknown, FormOutput>({
-    resolver: standardSchemaResolver(concreteMaterialsInputSchema),
+  const form = useForm<FormValues, unknown, FormOutput>({
+    resolver: parseResolver(parseConcreteMaterialsInput),
     defaultValues: concreteMaterialsDefaults,
     mode: "onTouched",
   });
@@ -67,7 +69,7 @@ export function ConcreteMaterialsForm() {
   // Live calculation: recompute whenever the current values parse cleanly.
   const values = form.watch();
   const live = useMemo(() => {
-    const parsed = concreteMaterialsInputSchema.safeParse(values);
+    const parsed = parseConcreteMaterialsInput(values);
     if (!parsed.success) return null;
     try {
       return {
@@ -147,49 +149,24 @@ export function ConcreteMaterialsForm() {
             hint="Wet, compacted volume: length × width × thickness. A 6 m × 5 m slab at 150 mm is 4.5 m³."
           />
 
-          {/* Mix class selector. A plain div, not <fieldset>: fieldsets
-              carry a browser default that refuses to shrink below their
-              content's natural width, which forces the whole page wider
-              than the viewport on mobile, and `min-width: 0` doesn't
-              reliably override it in every engine. */}
-          <div>
-            <p className="mb-1.5 text-[13px] font-semibold">Mix class</p>
-            <div
-              role="radiogroup"
-              aria-label="Mix class"
-              className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-            >
-              {MIX_CLASSES.map((mix) => (
-                <MixChip
-                  key={mix.id}
-                  selected={mixSelection === mix.id}
-                  onSelect={() =>
-                    form.setValue("mixSelection", mix.id, {
-                      shouldValidate: true,
-                    })
-                  }
-                  title={mix.name}
-                  detail={ratioLabel(mix.ratio)}
-                />
-              ))}
-              <MixChip
-                selected={mixSelection === "custom"}
-                onSelect={() =>
-                  form.setValue("mixSelection", "custom", {
-                    shouldValidate: true,
-                  })
-                }
-                title="Custom"
-                detail="own ratio"
-              />
-            </div>
-            {selectedClass ? (
-              <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
-                {selectedClass.name} ≈ {selectedClass.strengthMpa} N/mm² cube
-                strength. Typical use: {selectedClass.typicalUse.toLowerCase()}.
-              </p>
-            ) : null}
-          </div>
+          <OptionChips
+            label="Mix class"
+            value={mixSelection as MixSelection}
+            onChange={(v) => form.setValue("mixSelection", v, { shouldValidate: true })}
+            options={[
+              ...MIX_CLASSES.map((mix) => ({
+                value: mix.id as MixSelection,
+                label: mix.name,
+                detail: ratioLabel(mix.ratio),
+              })),
+              { value: "custom" as MixSelection, label: "Custom", detail: "own ratio" },
+            ]}
+            hint={
+              selectedClass
+                ? `${selectedClass.name} ≈ ${selectedClass.strengthMpa} N/mm² cube strength. Typical use: ${selectedClass.typicalUse.toLowerCase()}.`
+                : undefined
+            }
+          />
 
           {mixSelection === "custom" ? (
             <div className="rounded-md border bg-muted/40 p-3">
@@ -275,36 +252,6 @@ export function ConcreteMaterialsForm() {
         </div>
       </div>
     </FormProvider>
-  );
-}
-
-function MixChip({
-  selected,
-  onSelect,
-  title,
-  detail,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  title: string;
-  detail: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onSelect}
-      className={cn(
-        "flex min-h-14 flex-col items-start justify-center rounded-md border px-3 py-2 text-left transition-colors",
-        selected
-          ? "border-primary bg-accent text-accent-foreground ring-1 ring-primary"
-          : "bg-card hover:bg-muted",
-      )}
-    >
-      <span className="text-sm font-semibold leading-tight">{title}</span>
-      <span className="nums text-[12px] text-muted-foreground">{detail}</span>
-    </button>
   );
 }
 

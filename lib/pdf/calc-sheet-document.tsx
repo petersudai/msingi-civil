@@ -215,6 +215,17 @@ const s: Styles = {
     fontSize: 8,
   },
   tableCellRight: { textAlign: "right" },
+  checkRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderBottomWidth: 0.5,
+    borderColor: LINE,
+    paddingVertical: 3,
+  },
+  checkLabel: { fontWeight: 600, fontSize: 8.5 },
+  checkClause: { fontSize: 7, color: FAINT, marginTop: 1 },
+  checkValues: { fontFamily: "PlexMono", fontSize: 8, textAlign: "right" },
+  verdict: { padding: 6, marginBottom: 5, fontWeight: 600, fontSize: 9 },
   assumptionRow: { marginBottom: 4 },
   assumptionMain: { flexDirection: "row", justifyContent: "space-between" },
   assumptionSource: { fontSize: 7, color: FAINT, marginTop: 1 },
@@ -324,6 +335,36 @@ export function CalcSheetDocument({ data }: { data: CalcSheetData }) {
             ))}
           </View>
         </View>
+
+        {/* Design checks */}
+        {data.result.checks.length > 0 ? (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Design checks</Text>
+            <Text
+              style={[
+                s.verdict,
+                data.result.checks.some((c) => c.status === "fail")
+                  ? { backgroundColor: "#fde8e6", color: STAMP }
+                  : { backgroundColor: "#e6f4ec", color: "#14714a" },
+              ]}
+            >
+              {data.result.checks.some((c) => c.status === "fail")
+                ? "SECTION NOT ADEQUATE"
+                : "SECTION ADEQUATE: ALL CHECKS PASS"}
+            </Text>
+            {data.result.checks.map((c) => (
+              <View key={c.label} style={s.checkRow} wrap={false}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={s.checkLabel}>{c.label}</Text>
+                  {c.clause ? <Text style={s.checkClause}>{c.clause}</Text> : null}
+                </View>
+                <Text style={s.checkValues}>
+                  {c.demand} / {c.capacity}  ({Math.round(c.utilisation * 100)}%)  {c.status.toUpperCase()}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {/* Warnings */}
         {data.result.warnings.length > 0 ? (
