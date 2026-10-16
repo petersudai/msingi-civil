@@ -1,11 +1,19 @@
 import {
+  Circle,
   Document,
   Font,
+  G,
+  Line,
   Page,
+  Path,
+  Rect,
+  Svg,
   type Styles,
   Text,
   View,
 } from "@react-pdf/renderer";
+import { layoutChart } from "@/lib/calculations/chart-layout";
+import type { CalcChart } from "@/lib/calculations/types";
 import type { CalcSheetData } from "./types";
 
 /**
@@ -366,6 +374,15 @@ export function CalcSheetDocument({ data }: { data: CalcSheetData }) {
           </View>
         ) : null}
 
+        {/* Charts */}
+        {data.result.charts?.map((chart) => (
+          <View key={chart.title} style={s.section} wrap={false}>
+            <Text style={s.sectionTitle}>{chart.title}</Text>
+            <PdfChart chart={chart} />
+            {chart.caption ? <Text style={s.checkClause}>{chart.caption}</Text> : null}
+          </View>
+        ))}
+
         {/* Warnings */}
         {data.result.warnings.length > 0 ? (
           <View style={s.section}>
@@ -510,5 +527,68 @@ export function CalcSheetDocument({ data }: { data: CalcSheetData }) {
         </View>
       </Page>
     </Document>
+  );
+}
+
+
+const CHART_BOX = {
+  width: 360,
+  height: 260,
+  margin: { top: 12, right: 12, bottom: 38, left: 50 },
+};
+
+/** The chart drawn with react-pdf vector primitives, from the same layout the screen uses. */
+function PdfChart({ chart }: { chart: CalcChart }) {
+  const layout = layoutChart(chart, CHART_BOX);
+  const { plot } = layout;
+  return (
+    <Svg width={CHART_BOX.width} height={CHART_BOX.height} viewBox={`0 0 ${CHART_BOX.width} ${CHART_BOX.height}`}>
+      {layout.yTicks.map((t) => (
+        <G key={`y${t.value}`}>
+          <Line x1={plot.x} x2={plot.x + plot.width} y1={t.pos} y2={t.pos} stroke={LINE} strokeWidth={0.5} />
+          <Text x={plot.x - 5} y={t.pos + 3} style={{ fontSize: 8, fill: MUTED, textAnchor: "end" }}>
+            {t.label}
+          </Text>
+        </G>
+      ))}
+      {layout.xTicks.map((t) => (
+        <G key={`x${t.value}`}>
+          <Line x1={t.pos} x2={t.pos} y1={plot.y} y2={plot.y + plot.height} stroke={LINE} strokeWidth={0.5} />
+          <Text x={t.pos} y={plot.y + plot.height + 11} style={{ fontSize: 8, fill: MUTED, textAnchor: "middle" }}>
+            {t.label}
+          </Text>
+        </G>
+      ))}
+      <Rect x={plot.x} y={plot.y} width={plot.width} height={plot.height} stroke={FAINT} strokeWidth={0.75} fill="none" />
+      {layout.paths.map((d, i) => (
+        <Path key={chart.series[i].label} d={d} stroke="#0c4160" strokeWidth={1.5} fill="none" />
+      ))}
+      {layout.markers.map((m) => (
+        <Circle
+          key={m.label}
+          cx={m.x}
+          cy={m.y}
+          r={4.5}
+          fill={m.status === "fail" ? STAMP : "#14714a"}
+          stroke="#ffffff"
+          strokeWidth={1}
+        />
+      ))}
+      <Text
+        x={plot.x + plot.width / 2}
+        y={CHART_BOX.height - 6}
+        style={{ fontSize: 9, fill: INK, textAnchor: "middle" }}
+      >
+        {chart.xLabel}
+      </Text>
+      <Text
+        x={12}
+        y={plot.y + plot.height / 2}
+        transform={`rotate(-90 12 ${plot.y + plot.height / 2})`}
+        style={{ fontSize: 9, fill: INK, textAnchor: "middle" }}
+      >
+        {chart.yLabel}
+      </Text>
+    </Svg>
   );
 }

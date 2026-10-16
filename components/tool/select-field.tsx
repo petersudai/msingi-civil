@@ -52,7 +52,13 @@ export function SelectField({
       </Label>
       <Select
         value={value ?? ""}
-        onValueChange={(v) => setValue(name, v, { shouldValidate: true, shouldDirty: true })}
+        onValueChange={(v) => {
+          // Radix reports "" when the form value is set from outside (a reset or a
+          // hand-off) while its items aren't registered yet. That is not a user
+          // choice and must not wipe the value that was just set.
+          if (v === "") return;
+          setValue(name, v, { shouldValidate: true, shouldDirty: true });
+        }}
       >
         <SelectTrigger
           id={id}

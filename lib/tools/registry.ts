@@ -82,10 +82,10 @@ export const TOOLS: readonly ToolDefinition[] = [
     slug: "column-design",
     name: "RC column check",
     description:
-      "Axial and combined axial-moment capacity with slenderness checks.",
+      "Axial and bending capacity with slenderness and an interaction diagram, to Eurocode 2 or BS 8110.",
     category: "structural",
     icon: RectangleVertical,
-    status: "coming-soon",
+    status: "available",
     phase: 4,
   },
   {
@@ -95,7 +95,7 @@ export const TOOLS: readonly ToolDefinition[] = [
       "Member forces for determinate plane trusses by the method of joints.",
     category: "structural",
     icon: Triangle,
-    status: "coming-soon",
+    status: "available",
     phase: 5,
   },
   {

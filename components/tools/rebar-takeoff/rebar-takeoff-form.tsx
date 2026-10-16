@@ -59,7 +59,7 @@ export function RebarTakeoffForm() {
     const pending = useHandoff.getState().takeRebar();
     if (pending) {
       form.reset({ ...rebarTakeoffDefaults, ...pending });
-      toast.info("Pre-filled from your beam design. Check the clear span and details.");
+      toast.info("Pre-filled from your design. Check the length and details.");
     }
   }, [form]);
 

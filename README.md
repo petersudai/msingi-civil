@@ -41,6 +41,11 @@ lib/
     beam-design/
       codes/             # pluggable design codes: ec2.ts, bs8110.ts, index.ts
       calculate.ts       # code-agnostic orchestrator (loads, bars, links, checks)
+    column-design/
+      codes/             # pluggable design codes: ec2.ts, bs8110.ts, index.ts
+      section-capacity.ts# strain-compatibility interaction engine (both codes)
+      calculate.ts       # code-agnostic orchestrator (slenderness, capacity, checks)
+    chart-layout.ts      # shared chart geometry for the screen and PDF renderers
     reinforcement.ts     # standard bar sizes and areas shared by rebar tools
   forms/                 # parseResolver: RHF resolver from a plain parse fn
   tools/registry.ts      # single source of truth for what tools exist
@@ -70,6 +75,8 @@ Every engine is a pure function returning `CalcResultBase`:
 - `checks`: demand-versus-capacity design checks (label, demand, capacity,
   utilisation, pass/fail, code clause), rendered as a verdict banner with
   utilisation bars; empty for pure estimating tools
+- `charts`: optional line charts (curves plus a marker), e.g. a column's
+  interaction diagram, drawn from one shared layout on screen and in the PDF
 - `assumptions`: every value the numbers depend on, with its source
 - `warnings`: non-blocking sanity flags (`notice` / `caution`)
 - `basis`: code / standard / practice references
@@ -80,8 +87,8 @@ export, and (if it returns one) a schedule table, for free.
 
 ### Pluggable design codes
 
-Design tools that depend on a code (RC beam check) put each code behind a
-`BeamCode` interface, so the orchestrator never knows which code it drives.
+Design tools that depend on a code (RC beam and column checks) put each code
+behind a `BeamCode` / `ColumnCode` interface, so the orchestrator never knows which code it drives.
 Eurocode 2 and BS 8110 are both built in; a third code is one new file in
 `codes/` plus one line in `codes/index.ts`. Switching code in the UI resets
 grades, load factors and densities to that code's defaults as a set, and the
@@ -157,5 +164,16 @@ comment in each `calculate.test.ts`).
   were deliberately not used as anchors; the test header says why.
   Not covered: deflection and crack width, anchorage and curtailment, torsion,
   flanged sections, moment redistribution.
+
+- **RC column check**: the strain-compatibility engine is checked against hand
+  sums at a known neutral axis, the pure-compression limit and the zero-axial
+  beam case solved as a quadratic. The slenderness chains (Eurocode 2 nominal
+  curvature, BS 8110 additional moment) are restated in the tests from the code
+  equations with independent arithmetic. No published column worked example is
+  used as an anchor, because the ones found online use iterated or chart-read
+  values that can't be reproduced to a stated tolerance. The BS 8110 clause
+  numbers and the 0.95 f_y in N_uz were confirmed from secondary sources, not
+  the standard, so check them against your copy. Not covered: biaxial bending,
+  sway (unbraced) columns, the other axis, shear, circular columns, fire.
 
 **House rule: no UI for a calculation until its engine tests pass.**

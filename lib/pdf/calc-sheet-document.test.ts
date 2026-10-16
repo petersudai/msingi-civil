@@ -151,3 +151,37 @@ it("renders a beam check sheet with the design checks section", { timeout: 60_00
     writeFileSync(`${process.env.PDF_SMOKE_OUT}/beam-smoke.pdf`, buffer);
   }
 });
+
+it("renders a column check sheet with the interaction diagram", { timeout: 60_000 }, async () => {
+  const { renderToBuffer } = await import("@react-pdf/renderer");
+  const { CalcSheetDocument } = await import("./calc-sheet-document");
+  const { calculateColumnDesign } = await import("@/lib/calculations/column-design/calculate");
+  const { parseColumnDesignInput, columnDesignDefaults } = await import(
+    "@/lib/calculations/column-design/schema"
+  );
+
+  const parsed = parseColumnDesignInput(columnDesignDefaults);
+  if (!parsed.success) throw new Error("default column input should parse");
+  const result = calculateColumnDesign(parsed.data);
+  expect(result.charts?.length).toBe(1);
+
+  const buffer = await renderToBuffer(
+    createElement(CalcSheetDocument, {
+      data: {
+        toolName: "RC column check",
+        subtitle: "Eurocode 2 · 300 × 400 mm · 8 bars",
+        filename: "column-smoke.pdf",
+        inputsSummary: [{ label: "Design code", value: "Eurocode 2" }],
+        result,
+        generatedAt: "11 Jul 2026",
+      },
+    }) as import("react").ReactElement<import("@react-pdf/renderer").DocumentProps>,
+  );
+
+  expect(buffer.length).toBeGreaterThan(20_000);
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  if (process.env.PDF_SMOKE_OUT) {
+    mkdirSync(process.env.PDF_SMOKE_OUT, { recursive: true });
+    writeFileSync(`${process.env.PDF_SMOKE_OUT}/column-smoke.pdf`, buffer);
+  }
+});

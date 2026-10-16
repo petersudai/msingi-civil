@@ -112,6 +112,33 @@ export interface CalcCheck {
   clause?: string;
 }
 
+/** One curve on a {@link CalcChart}. Points are in the units named by the chart's axis labels. */
+export interface CalcChartSeries {
+  label: string;
+  points: Array<{ x: number; y: number }>;
+}
+
+/** A point of interest plotted over the curves, e.g. the design point on an interaction diagram. */
+export interface CalcChartMarker {
+  label: string;
+  x: number;
+  y: number;
+  status?: "pass" | "fail";
+}
+
+/**
+ * A line chart rendered on the sheet and in the PDF, e.g. a column's P-M
+ * interaction diagram. Engines supply data only; the renderers draw it.
+ */
+export interface CalcChart {
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  series: CalcChartSeries[];
+  markers: CalcChartMarker[];
+  caption?: string;
+}
+
 /** The renderable envelope every engine returns. */
 export interface CalcResultBase {
   /** One-line method statement, e.g. "Dry-volume (nominal mix) estimation". */
@@ -124,6 +151,8 @@ export interface CalcResultBase {
   tables: CalcTable[];
   /** Pass/fail design checks. Empty for pure takeoff tools. */
   checks: CalcCheck[];
+  /** Charts, e.g. an interaction diagram. Omitted by tools that have none. */
+  charts?: CalcChart[];
   /** Every assumption the numbers depend on. */
   assumptions: Assumption[];
   /** Sanity flags for the current inputs/results. */

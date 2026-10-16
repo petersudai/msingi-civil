@@ -1,6 +1,7 @@
 import { AlertTriangle, CircleCheck, CircleX, Info } from "lucide-react";
 import type { CalcCheck, CalcResultBase } from "@/lib/calculations/types";
 import { cn } from "@/lib/utils";
+import { CalcChartFigure } from "./calc-chart";
 import { PreliminaryStamp } from "./preliminary-stamp";
 
 /**
@@ -78,6 +79,15 @@ export function CalcSheet({
 
       {/* Pass/fail design checks */}
       {result.checks.length > 0 ? <ChecksSection checks={result.checks} /> : null}
+
+      {/* Charts */}
+      {result.charts && result.charts.length > 0 ? (
+        <div className="space-y-5 border-b px-4 py-4 md:px-5">
+          {result.charts.map((chart) => (
+            <CalcChartFigure key={chart.title} chart={chart} />
+          ))}
+        </div>
+      ) : null}
 
       {/* Warnings */}
       {result.warnings.length > 0 ? (
