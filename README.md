@@ -85,10 +85,13 @@ Design tools that depend on a code (RC beam check) put each code behind a
 Eurocode 2 and BS 8110 are both built in; a third code is one new file in
 `codes/` plus one line in `codes/index.ts`. Switching code in the UI resets
 grades, load factors and densities to that code's defaults as a set, and the
-sheet states the code behind every number. Kenya has adopted the Eurocodes,
-but the Kenya National Annex values are **not** applied: Eurocode 2 uses the
-EN recommended partial factors with alpha_cc defaulted to 0.85 (overridable
-under Advanced), and the sheet says so.
+sheet states the code behind every number. Kenya has adopted the Eurocodes
+(KS EN 1992-1-1), but no published Kenya National Annex was found when this
+was built (searched October 2026), and Kenyan practice is reported to use the
+UK National Annex in the interim. Eurocode 2 therefore defaults to the UK NA
+values (alpha_cc 0.85, gamma_c 1.5, gamma_s 1.15), all overridable under
+Advanced, and the sheet says so. If a Kenya NA is published, only the
+defaults in `codes/ec2.ts` need to change.
 
 ### Adding tool #N (mechanical, by design)
 

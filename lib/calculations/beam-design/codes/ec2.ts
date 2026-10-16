@@ -21,10 +21,12 @@ import type {
  * Eurocode 2 (EN 1992-1-1:2004) beam design: bending with the rectangular
  * stress block, and shear by the variable strut inclination method.
  *
- * Nationally Determined Parameters use the EN recommended values, except the
- * long-term strength factor alpha_cc, which defaults to the conservative
- * 0.85 (the value most national annexes adopt for bending). The Kenya National
- * Annex values are NOT built in: check them and override under Advanced.
+ * Nationally Determined Parameters: no published Kenya National Annex to EN
+ * 1992-1-1 was found (searched October 2026), and Kenyan practice is reported
+ * to lean on the UK National Annex in the meantime. The defaults therefore
+ * equal the UK NA values for the parameters this tool uses: alpha_cc 0.85,
+ * gamma_c 1.5, gamma_s 1.15 (EN recommends alpha_cc 1.0). All three can be
+ * overridden under Advanced once a Kenyan annex is available.
  *
  * Greek letters are spelled out in the working strings because the PDF fonts
  * carry no Greek glyphs.
@@ -331,7 +333,7 @@ function designShear({ vEdKn, geometry, asTensionMm2, params }: ShearInput): She
 
 function assumptions(p: CodeParameters): Assumption[] {
   const nationalNote =
-    "EN recommended value; confirm against the Kenya National Annex (KS EN 1992-1-1)";
+    "UK National Annex value, used because no published Kenya National Annex was found; confirm for your project";
   return [
     { label: "Concrete strength f_ck", value: `${p.concreteStrength} N/mm²` },
     { label: "Steel yield f_yk (main / links)", value: `${p.fy} / ${p.fyv} N/mm²` },
@@ -340,8 +342,8 @@ function assumptions(p: CodeParameters): Assumption[] {
       value: formatTrimmed(p.alphaCc, 2),
       source:
         p.alphaCc === 1
-          ? "EN recommended value (1.0). Many national annexes use 0.85 for bending"
-          : "Conservative 0.85 used by most national annexes for bending; EN recommends 1.0. Confirm against the Kenya National Annex",
+          ? "EN recommended value (1.0). The UK National Annex uses 0.85 for bending"
+          : "UK National Annex value for bending (EN recommends 1.0). No published Kenya National Annex was found; confirm for your project",
     },
     { label: "Concrete partial factor gamma_c", value: formatTrimmed(p.gammaC, 2), source: nationalNote },
     { label: "Steel partial factor gamma_s", value: formatTrimmed(p.gammaS, 2), source: nationalNote },
@@ -374,7 +376,7 @@ const basis: readonly SourceReference[] = [
   },
   {
     label: "National Annex",
-    note: "Nationally Determined Parameters use EN recommended values except alpha_cc (0.85). The Kenya National Annex has not been applied; check it before relying on these results.",
+    note: "No published Kenya National Annex to EN 1992-1-1 was found. Nationally Determined Parameters (alpha_cc 0.85, gamma_c 1.5, gamma_s 1.15) equal the UK National Annex values. Confirm them with your approving authority before relying on these results.",
   },
 ];
 

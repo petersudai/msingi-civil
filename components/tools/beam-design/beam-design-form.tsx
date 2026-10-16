@@ -183,7 +183,7 @@ export function BeamDesignForm() {
               }))}
               hint={
                 codeId === "ec2"
-                  ? "Kenya has adopted the Eurocodes. The Kenya National Annex values are not applied here, so confirm the parameters for your project."
+                  ? "Kenya has adopted the Eurocodes, but no published Kenya National Annex was found. Parameters follow the UK National Annex instead; confirm them for your project."
                   : "BS 8110 is withdrawn in the UK but still used on older projects and in some Kenyan practice. Check your project specification."
               }
             />
@@ -349,7 +349,7 @@ export function BeamDesignForm() {
                 <NumberField
                   name="alphaCc"
                   label="alpha_cc (long-term strength factor)"
-                  hint="EN 1992-1-1 recommends 1.0; many national annexes use 0.85. Defaulted to 0.85 here, so confirm against the annex for your project."
+                  hint="EN 1992-1-1 recommends 1.0; the UK National Annex uses 0.85, which is the default here. Override if your project specifies otherwise."
                 />
                 <div className="grid grid-cols-2 gap-2.5">
                   <NumberField name="gammaC" label="Concrete factor, gamma_c" />
