@@ -3,8 +3,12 @@ import { formatNumber, formatTrimmed } from "../../format";
 import type { Assumption, SourceReference, WorkingStep } from "../../types";
 import { STEEL_MODULUS } from "../constants";
 import type {
+  BiaxialInput,
+  BiaxialOutcome,
   ColumnCode,
   ColumnParameters,
+  ColumnShearInput,
+  ColumnShearOutcome,
   LinkRules,
   SlendernessInput,
   SlendernessOutcome,
@@ -32,6 +36,13 @@ const N_BAL = 0.4;
 const CURVATURE_FACTOR_C = 10;
 /** Floor on the relative axial force n in the slenderness limit, so a column with almost no load isn't judged "infinitely short". */
 const N_FLOOR = 0.01;
+/** Strut inclination limits for shear: cot(theta) between 1 and 2.5. EN 1992-1-1 cl. 6.2.3(2). */
+const COT_THETA_MAX = 2.5;
+const COT_THETA_MIN = 1.0;
+/** Internal lever arm for shear, as a fraction of d. EN 1992-1-1 cl. 6.2.3(1). */
+const SHEAR_LEVER_ARM_RATIO = 0.9;
+/** Coefficient for the effect of axial compression on shear resistance. EN 1992-1-1 cl. 6.2.2(1). */
+const K1_AXIAL = 0.15;
 /** Slenderness above which the nominal curvature method is not relied on in this tool. */
 const SCOPE_LAMBDA_MAX = 140;
 
@@ -87,8 +98,10 @@ function slenderness(input: SlendernessInput): SlendernessOutcome {
 
   let secondOrder = 0;
   let design: number;
+  let designNoMin: number;
 
   if (!slender) {
+    designNoMin = m02;
     design = Math.max(m02, minimumMoment);
     steps.push({
       title: "Design moment (short column)",
@@ -111,7 +124,8 @@ function slenderness(input: SlendernessInput): SlendernessOutcome {
     const curvature = kr * kPhi * curvature0;
     const e2 = (curvature * l0 * l0) / CURVATURE_FACTOR_C;
     secondOrder = (nEdKn * e2) / 1000;
-    design = Math.max(m02, m0Ed + secondOrder, minimumMoment);
+    designNoMin = Math.max(m02, m0Ed + secondOrder);
+    design = Math.max(designNoMin, minimumMoment);
 
     steps.push(
       {
@@ -147,9 +161,183 @@ function slenderness(input: SlendernessInput): SlendernessOutcome {
     minimumMomentKnm: minimumMoment,
     secondOrderKnm: secondOrder,
     designMomentKnm: design,
+    designMomentNoMinKnm: designNoMin,
     scopeDemand: lambda,
     scopeLimit: SCOPE_LAMBDA_MAX,
     scopeLabel: "Slenderness within the tool's range",
+    steps,
+  };
+}
+
+/** Exponent a for biaxial bending of a rectangular section: 1.0 at N/N_Rd 0.1, 1.5 at 0.7, 2.0 at 1.0. EN 1992-1-1 cl. 5.8.9(4). */
+export function ec2BiaxialExponent(nOverNRd: number): number {
+  if (nOverNRd <= 0.1) return 1.0;
+  if (nOverNRd >= 1.0) return 2.0;
+  if (nOverNRd <= 0.7) return 1.0 + (0.5 * (nOverNRd - 0.1)) / 0.6;
+  return 1.5 + (0.5 * (nOverNRd - 0.7)) / 0.3;
+}
+
+/** Effect of axial compression on the web crushing limit, alpha_cw. EN 1992-1-1 cl. 6.2.3(3). */
+export function ec2AlphaCw(sigmaCpOverFcd: number): number {
+  const r = Math.min(Math.max(sigmaCpOverFcd, 0), 1);
+  if (r === 0) return 1.0;
+  if (r <= 0.25) return 1 + r;
+  if (r <= 0.5) return 1.25;
+  return 2.5 * (1 - r);
+}
+
+function biaxial(input: BiaxialInput): BiaxialOutcome {
+  const { nEdKn, h, b, grossAreaMm2, steelAreaMm2, params } = input;
+  const { fcd, fyd } = designStrengths(params);
+  const nRdKn = (grossAreaMm2 * fcd + steelAreaMm2 * fyd) / 1000;
+  const ratio = nEdKn / nRdKn;
+  const a = ec2BiaxialExponent(ratio);
+
+  // Separate design in each direction is allowed when the slenderness and the
+  // eccentricities are lopsided enough (EN 1992-1-1 Eq. 5.38a and 5.38b).
+  const lambdaRatio = Math.max(h.slenderness / b.slenderness, b.slenderness / h.slenderness);
+  const eH = (h.actualKnm * 1000) / nEdKn;
+  const eB = (b.actualKnm * 1000) / nEdKn;
+  const relH = eH / h.dimensionMm;
+  const relB = eB / b.dimensionMm;
+  const lopsided = relH === 0 || relB === 0 || relH / relB <= 0.2 || relB / relH <= 0.2;
+  const separate = lambdaRatio <= 2 && lopsided;
+
+  const steps: WorkingStep[] = [
+    {
+      title: "Biaxial bending: is a combined check needed?",
+      formula:
+        "lambda_h / lambda_b and lambda_b / lambda_h <= 2 ;  (e_h / h) / (e_b / b) <= 0.2 or >= 5",
+      substitution: `lambda ratio = ${formatTrimmed(lambdaRatio, 2)} ;  e_h / h = ${formatNumber(eH, 1)} / ${formatNumber(h.dimensionMm, 0)} = ${formatTrimmed(relH, 3)} ;  e_b / b = ${formatNumber(eB, 1)} / ${formatNumber(b.dimensionMm, 0)} = ${formatTrimmed(relB, 3)}`,
+      result: separate
+        ? "Not needed: each direction can be designed on its own"
+        : "Needed: bending about both axes is significant",
+      note: "EN 1992-1-1 cl. 5.8.9(2) and (3). Eccentricities are from the design moments without the minimum-eccentricity floor.",
+    },
+  ];
+
+  if (separate) {
+    return { applies: false, utilisation: null, demand: "n/a", capacity: "n/a", steps };
+  }
+
+  // The minimum eccentricity is applied about one axis at a time, never both.
+  const sumFor = (mh: number, mb: number) =>
+    Math.pow(mh / h.capacityKnm, a) + Math.pow(mb / b.capacityKnm, a);
+  const hFloor = sumFor(h.fullKnm, b.actualKnm);
+  const bFloor = sumFor(h.actualKnm, b.fullKnm);
+  const governing = Math.max(hFloor, bFloor);
+
+  steps.push({
+    title: "Biaxial interaction",
+    formula:
+      "(M_Edh / M_Rdh)^a + (M_Edb / M_Rdb)^a <= 1.0 ;  a from N_Ed / N_Rd, with N_Rd = A_c f_cd + A_s f_yd",
+    substitution: `N_Rd = ${formatNumber(nRdKn, 0)} kN, N_Ed / N_Rd = ${formatTrimmed(ratio, 3)}, a = ${formatTrimmed(a, 3)} ;  minimum eccentricity along h: (${formatNumber(h.fullKnm, 1)} / ${formatNumber(h.capacityKnm, 1)})^a + (${formatNumber(b.actualKnm, 1)} / ${formatNumber(b.capacityKnm, 1)})^a = ${formatTrimmed(hFloor, 3)} ;  along b: (${formatNumber(h.actualKnm, 1)} / ${formatNumber(h.capacityKnm, 1)})^a + (${formatNumber(b.fullKnm, 1)} / ${formatNumber(b.capacityKnm, 1)})^a = ${formatTrimmed(bFloor, 3)}`,
+    result: `Sum = ${formatTrimmed(governing, 3)} (limit 1.0)`,
+    note: "EN 1992-1-1 cl. 5.8.9(4), Eq. 5.39. The minimum-eccentricity moment is applied about one axis at a time (cl. 6.1(4)).",
+  });
+
+  return {
+    applies: true,
+    utilisation: governing,
+    demand: formatTrimmed(governing, 2),
+    capacity: "1.00",
+    steps,
+  };
+}
+
+function shear(input: ColumnShearInput): ColumnShearOutcome {
+  const { vEdKn, nEdKn, widthMm: b, effectiveDepthMm: d, overallDepthMm: h, params } = input;
+  const { fcd } = designStrengths(params);
+  const fck = params.concreteStrength;
+  const V = vEdKn * 1000;
+  const sigmaCp = (nEdKn * 1000) / (b * h);
+  const sigmaCpCapped = Math.min(sigmaCp, 0.2 * fcd);
+
+  const k = Math.min(1 + Math.sqrt(200 / d), 2.0);
+  const rhoL = Math.min(input.tensionSteelMm2 / (b * d), 0.02);
+  const cRdc = 0.18 / params.gammaC;
+  const concreteTerm = cRdc * k * Math.cbrt(100 * rhoL * fck);
+  const vMinStress = 0.035 * Math.pow(k, 1.5) * Math.sqrt(fck);
+  const axialTerm = K1_AXIAL * sigmaCpCapped;
+  const vRdcStress = Math.max(concreteTerm, vMinStress) + axialTerm;
+  const vRdc = vRdcStress * b * d;
+
+  const z = SHEAR_LEVER_ARM_RATIO * d;
+  const nu1 = 0.6 * (1 - fck / 250);
+  const alphaCw = ec2AlphaCw(sigmaCp / fcd);
+  const base = alphaCw * b * z * nu1 * fcd;
+  const vMax45 = base / (COT_THETA_MIN + 1 / COT_THETA_MIN);
+  const vMaxLow = base / (COT_THETA_MAX + 1 / COT_THETA_MAX);
+  const fyvUsed = Math.min(params.fyv, 500);
+  const fywd = fyvUsed / params.gammaS;
+
+  const steps: WorkingStep[] = [
+    {
+      title: "Shear resistance without links",
+      formula:
+        "V_Rd,c = [max(C_Rd,c × k × (100 rho_l f_ck)^(1/3) , v_min) + k_1 × sigma_cp] × b × d ;  sigma_cp = N_Ed / A_c (at most 0.2 f_cd) ;  k_1 = 0.15",
+      substitution: `k = ${formatTrimmed(k, 3)}, rho_l = ${formatNumber(input.tensionSteelMm2, 0)} / (${formatNumber(b, 0)} × ${formatNumber(d, 1)}) = ${formatTrimmed(rhoL, 5)} ;  C_Rd,c term = ${formatTrimmed(concreteTerm, 3)}, v_min = ${formatTrimmed(vMinStress, 3)} N/mm² ;  sigma_cp = ${formatTrimmed(sigmaCpCapped, 2)} N/mm², k_1 sigma_cp = ${formatTrimmed(axialTerm, 3)} N/mm²`,
+      result: `V_Rd,c = ${formatNumber(vRdc / 1000, 1)} kN`,
+      note: "EN 1992-1-1 cl. 6.2.2(1). Axial compression raises the concrete's shear resistance. rho_l uses the bars on one face.",
+    },
+    {
+      title: "Web crushing limit",
+      formula:
+        "V_Rd,max = alpha_cw × b × z × nu_1 × f_cd / (cot(theta) + tan(theta)) ;  z = 0.9 d ;  alpha_cw from sigma_cp / f_cd",
+      substitution: `sigma_cp / f_cd = ${formatTrimmed(sigmaCp / fcd, 3)}, alpha_cw = ${formatTrimmed(alphaCw, 3)}, nu_1 = ${formatTrimmed(nu1, 3)}, z = ${formatNumber(z, 1)} mm ;  V_Rd,max = ${formatNumber(vMaxLow / 1000, 1)} kN at cot(theta) = 2.5, ${formatNumber(vMax45 / 1000, 1)} kN at cot(theta) = 1.0`,
+      result: `Upper limit ${formatNumber(vMax45 / 1000, 1)} kN`,
+      note: "EN 1992-1-1 cl. 6.2.3(3). Compression raises alpha_cw above 1 up to half of f_cd, and lowers it again towards the axial capacity.",
+    },
+  ];
+
+  if (V <= vRdc) {
+    steps.push({
+      title: "Links for shear",
+      formula: "V_Ed <= V_Rd,c: no links are needed for strength",
+      substitution: `V_Ed = ${formatNumber(vEdKn, 1)} kN <= V_Rd,c = ${formatNumber(vRdc / 1000, 1)} kN`,
+      result: "Link size and spacing are set by the detailing rules",
+      note: "EN 1992-1-1 cl. 6.2.1(4) and 9.5.3.",
+    });
+    return {
+      verdict: "links-minimum",
+      vEdKn,
+      concreteCapacityKn: vRdc / 1000,
+      maxCapacityKn: vMax45 / 1000,
+      aswPerSMmReq: 0,
+      steps,
+    };
+  }
+
+  if (V > vMax45) {
+    return {
+      verdict: "section-inadequate",
+      vEdKn,
+      concreteCapacityKn: vRdc / 1000,
+      maxCapacityKn: vMax45 / 1000,
+      aswPerSMmReq: 0,
+      steps,
+    };
+  }
+
+  let cotTheta = COT_THETA_MAX;
+  if (V > vMaxLow) {
+    const theta = 0.5 * Math.asin(Math.min(1, (2 * V) / base));
+    cotTheta = Math.max(COT_THETA_MIN, Math.min(COT_THETA_MAX, 1 / Math.tan(theta)));
+  }
+  const aswPerS = V / (z * fywd * cotTheta);
+  steps.push({
+    title: "Links for shear",
+    formula: "A_sw / s = V_Ed / (z × f_ywd × cot(theta))",
+    substitution: `cot(theta) = ${formatTrimmed(cotTheta, 2)} ;  f_ywd = ${fyvUsed} / ${formatTrimmed(params.gammaS, 2)} = ${formatNumber(fywd, 1)} N/mm² ;  A_sw / s = ${formatNumber(V, 0)} / (${formatNumber(z, 1)} × ${formatNumber(fywd, 1)} × ${formatTrimmed(cotTheta, 2)})`,
+    result: `${formatTrimmed(aswPerS, 4)} mm²/mm`,
+    note: "EN 1992-1-1 cl. 6.2.3(3). Two link legs resist shear in each direction.",
+  });
+  return {
+    verdict: "links-designed",
+    vEdKn,
+    concreteCapacityKn: vRdc / 1000,
+    maxCapacityKn: vMax45 / 1000,
+    aswPerSMmReq: aswPerS,
     steps,
   };
 }
@@ -196,7 +384,7 @@ function assumptions(p: ColumnParameters): Assumption[] {
     "UK National Annex value, used because no published Kenya National Annex was found; confirm for your project";
   return [
     { label: "Concrete strength f_ck", value: `${p.concreteStrength} N/mm²` },
-    { label: "Steel yield f_yk", value: `${p.fy} N/mm²` },
+    { label: "Steel yield f_yk (main / links)", value: `${p.fy} / ${p.fyv} N/mm²` },
     {
       label: "Long-term strength factor alpha_cc",
       value: formatTrimmed(p.alphaCc, 2),
@@ -223,13 +411,23 @@ function assumptions(p: ColumnParameters): Assumption[] {
       value: "Strain compatibility",
       source: "Concrete strain 0.0035, pivoting about 3/7 h to 0.002 when wholly in compression (Fig. 6.1)",
     },
+    {
+      label: "Shear model",
+      value: "Variable strut, cot(theta) 1.0 to 2.5, two link legs per direction",
+      source: "Axial compression raises V_Rd,c and alpha_cw (cl. 6.2.2, 6.2.3)",
+    },
+    {
+      label: "Biaxial bending",
+      value: "Eq. 5.39 with the exponent a from N_Ed / N_Rd",
+      source: "Only when the slenderness and eccentricity limits of cl. 5.8.9(3) are not met",
+    },
   ];
 }
 
 const basis: readonly SourceReference[] = [
   {
     label: "EN 1992-1-1:2004",
-    note: "Resistance: cl. 3.1.7, 6.1. Slenderness and second-order effects: cl. 5.8.3, 5.8.8. Detailing: cl. 9.5.",
+    note: "Resistance: cl. 3.1.7, 6.1. Slenderness and second-order effects: cl. 5.8.3, 5.8.8. Biaxial bending: cl. 5.8.9. Shear: cl. 6.2.2, 6.2.3. Detailing: cl. 9.5.",
   },
   {
     label: "National Annex",
@@ -246,6 +444,7 @@ export const ec2Column: ColumnCode = {
   defaults: {
     concreteStrength: 30,
     fy: 500,
+    fyv: 500,
     alphaCc: 0.85,
     gammaC: 1.5,
     gammaS: 1.15,
@@ -257,6 +456,9 @@ export const ec2Column: ColumnCode = {
     linkRules: "EN 1992-1-1 cl. 9.5.3",
     slendernessScope: "Tool limit",
     minimumBars: "EN 1992-1-1 cl. 9.5.2(4)",
+    shear: "EN 1992-1-1 cl. 6.2.3",
+    shearLimit: "EN 1992-1-1 cl. 6.2.3(3)",
+    biaxial: "EN 1992-1-1 cl. 5.8.9",
   },
   stressModel(p) {
     const { fcd, fyd } = designStrengths(p);
@@ -268,6 +470,8 @@ export const ec2Column: ColumnCode = {
   },
   slenderness,
   steelLimits,
+  shear,
+  biaxial,
   linkRules: (mainBar, b, h) => linkRules(mainBar, b, h),
   assumptions,
   basis,

@@ -25,7 +25,7 @@ export function ColumnSectionDiagram({ input }: { input: SectionDiagramInput }) 
   const xAcross = (i: number, n: number) =>
     x0 + (dPrime + (i * (input.bMm - 2 * dPrime)) / (n - 1)) * scale;
   const totalW = w + PAD * 2;
-  const totalH = h + PAD * 1.2;
+  const totalH = h + PAD * 1.4;
 
   return (
     <figure className="flex items-center gap-4 rounded-md border bg-muted/40 p-3">
@@ -36,7 +36,7 @@ export function ColumnSectionDiagram({ input }: { input: SectionDiagramInput }) 
         role="img"
         aria-label={`Column section ${input.bMm} by ${input.hMm} millimetres with ${
           2 * input.barsAcrossB + 2 * (input.barsAcrossH - 2)
-        } bars. Bending acts in the ${input.hMm} millimetre direction.`}
+        } bars. Moments along h act in the ${input.hMm} millimetre direction and along b in the ${input.bMm} millimetre direction.`}
         className="h-auto max-w-[190px] shrink-0"
       >
         <rect x={x0} y={y0} width={w} height={h} className="fill-card stroke-foreground" strokeWidth={1.5} />
@@ -61,19 +61,22 @@ export function ColumnSectionDiagram({ input }: { input: SectionDiagramInput }) 
             <circle key={`${ri}-${i}`} cx={xAcross(i, 2)} cy={y} r={barR} className="fill-foreground" />
           ));
         })}
-        {/* Bending acts in the h direction: a double arrow along the right edge. */}
+        {/* Along h: a double arrow down the right edge. Along b: one under the section. */}
         <g className="stroke-muted-foreground" strokeWidth={1}>
           <line x1={x0 + w + 12} y1={y0 + 3} x2={x0 + w + 12} y2={y0 + h - 3} />
           <polyline points={`${x0 + w + 8},${y0 + 8} ${x0 + w + 12},${y0 + 3} ${x0 + w + 16},${y0 + 8}`} fill="none" />
           <polyline points={`${x0 + w + 8},${y0 + h - 8} ${x0 + w + 12},${y0 + h - 3} ${x0 + w + 16},${y0 + h - 8}`} fill="none" />
+          <line x1={x0 + 3} y1={y0 + h + 11} x2={x0 + w - 3} y2={y0 + h + 11} />
+          <polyline points={`${x0 + 8},${y0 + h + 7} ${x0 + 3},${y0 + h + 11} ${x0 + 8},${y0 + h + 15}`} fill="none" />
+          <polyline points={`${x0 + w - 8},${y0 + h + 7} ${x0 + w - 3},${y0 + h + 11} ${x0 + w - 8},${y0 + h + 15}`} fill="none" />
         </g>
       </svg>
       <figcaption className="text-[12.5px] leading-snug text-muted-foreground">
         <span className="nums font-semibold text-foreground">
           {input.bMm} × {input.hMm} mm
         </span>
-        , {2 * input.barsAcrossB + 2 * (input.barsAcrossH - 2)} bars. The arrow shows the plane of
-        bending: the moment acts along the {input.hMm} mm side.
+        , {2 * input.barsAcrossB + 2 * (input.barsAcrossH - 2)} bars. The side arrow is bending
+        along h ({input.hMm} mm), the bottom arrow is bending along b ({input.bMm} mm).
       </figcaption>
     </figure>
   );

@@ -169,11 +169,20 @@ comment in each `calculate.test.ts`).
   sums at a known neutral axis, the pure-compression limit and the zero-axial
   beam case solved as a quadratic. The slenderness chains (Eurocode 2 nominal
   curvature, BS 8110 additional moment) are restated in the tests from the code
-  equations with independent arithmetic. No published column worked example is
-  used as an anchor, because the ones found online use iterated or chart-read
-  values that can't be reproduced to a stated tolerance. The BS 8110 clause
-  numbers and the 0.95 f_y in N_uz were confirmed from secondary sources, not
-  the standard, so check them against your copy. Not covered: biaxial bending,
-  sway (unbraced) columns, the other axis, shear, circular columns, fire.
+  equations with independent arithmetic, for both axes. The biaxial checks
+  (Eurocode 2 Eq. 5.39 with its exponent table, BS 8110 increased single-axis
+  moment with its beta table) and the column shear (V_Rd,c with the axial term,
+  alpha_cw, BS 8110 v_c with the axial enhancement) are checked against hand
+  calculations in the tests too, and the minimum eccentricity is tested to act
+  on one axis at a time. No published column worked example is used as an
+  anchor, because the ones found online use iterated or chart-read values that
+  can't be reproduced to a stated tolerance. Several constants were confirmed
+  from secondary sources or from memory, not the standards, so check them
+  against your copies: the BS 8110 clause numbers, the 0.95 f_y in N_uz, the
+  BS 8110 Table 3.22 beta values, the BS 8110 shear enhancement
+  (cl. 3.4.5.12), the Eurocode 2 exponent table (cl. 5.8.9(4)) and the
+  alpha_cw rule (cl. 6.2.3(3)). Not covered: sway (unbraced) columns, circular
+  columns and fire. Sway needs a whole-frame analysis; circular and fire are
+  separate tools.
 
 **House rule: no UI for a calculation until its engine tests pass.**

@@ -17,7 +17,10 @@ import { OptionChips } from "@/components/tool/option-chips";
 import { SaveCalcButton } from "@/components/tool/save-calc-button";
 import { SelectField } from "@/components/tool/select-field";
 import { Button } from "@/components/ui/button";
-import { MAIN_STEEL_GRADES_MPA } from "@/lib/calculations/beam-design/constants";
+import {
+  LINK_STEEL_GRADES_MPA,
+  MAIN_STEEL_GRADES_MPA,
+} from "@/lib/calculations/beam-design/constants";
 import { calculateColumnDesign } from "@/lib/calculations/column-design/calculate";
 import { COLUMN_CODES, getColumnCode } from "@/lib/calculations/column-design/codes";
 import {
@@ -127,6 +130,8 @@ export function ColumnDesignForm() {
   const codeId = (form.watch("code") || columnDesignDefaults.code) as CodeId;
   const endCondition = form.watch("endCondition") as EndCondition;
   const code = getColumnCode(codeId);
+  const hLabel = Number(form.watch("hMm")) > 0 ? String(form.watch("hMm")) : "";
+  const bLabel = Number(form.watch("bMm")) > 0 ? String(form.watch("bMm")) : "";
 
   function changeCode(next: CodeId) {
     if (next === codeId) return;
@@ -223,14 +228,14 @@ export function ColumnDesignForm() {
               <NumberField name="bMm" label="Width, b" unit="mm" placeholder="300" />
               <NumberField
                 name="hMm"
-                label="Depth in bending, h"
+                label="Depth, h"
                 unit="mm"
                 placeholder="400"
               />
             </div>
             <p className="text-[12.5px] leading-snug text-muted-foreground">
-              Enter h as the side the moment acts along. For bending about the other axis, swap b and
-              h.
+              Both axes are checked, so the order doesn&apos;t matter: h is just the side your
+              first pair of moments acts along.
             </p>
             <NumberField
               name="coverMm"
@@ -287,7 +292,7 @@ export function ColumnDesignForm() {
                     ? "factor 0.5 to 1.0"
                     : `factor ${formatTrimmed(END_CONDITION_FACTORS[e], 2)}`,
               }))}
-              hint="Assumes the frame is braced against sway. Fixed means held rigidly by beams or foundations of at least the column's stiffness."
+              hint="Assumes the frame is braced against sway, with the same restraint about both axes. Fixed means held rigidly by beams or foundations of at least the column's stiffness."
             />
             {endCondition === "custom" ? (
               <NumberField
@@ -303,13 +308,32 @@ export function ColumnDesignForm() {
             <legend className="sr-only">Design actions</legend>
             <h2 className="font-heading text-sm font-bold">Design actions (ultimate)</h2>
             <NumberField name="nEdKn" label="Axial load, N" unit="kN" placeholder="1200" />
-            <div className="grid grid-cols-2 gap-2.5">
-              <NumberField name="mTopKnm" label="Moment at top" unit="kNm" placeholder="60" />
-              <NumberField name="mBotKnm" label="Moment at bottom" unit="kNm" placeholder="30" />
+            <div className="space-y-2.5 rounded-md border bg-muted/40 p-3">
+              <p className="text-[13px] font-semibold">
+                Moments along h{hLabel ? ` (the ${hLabel} mm side)` : ""}
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                <NumberField name="mTopKnm" label="At the top" unit="kNm" placeholder="60" />
+                <NumberField name="mBotKnm" label="At the bottom" unit="kNm" placeholder="30" />
+              </div>
+            </div>
+            <div className="space-y-2.5 rounded-md border bg-muted/40 p-3">
+              <p className="text-[13px] font-semibold">
+                Moments along b{bLabel ? ` (the ${bLabel} mm side)` : ""}, if any
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                <NumberField name="mTopBKnm" label="At the top" unit="kNm" placeholder="0" />
+                <NumberField name="mBotBKnm" label="At the bottom" unit="kNm" placeholder="0" />
+              </div>
+              <p className="text-[12.5px] leading-snug text-muted-foreground">
+                Leave at 0 if the column bends about one axis only. That axis is still checked
+                for slenderness and the minimum eccentricity.
+              </p>
             </div>
             <p className="text-[12.5px] leading-snug text-muted-foreground">
-              Factored values from your analysis, about the axis of bending. Same sign if the column
-              bends in a single curve, opposite signs for double curvature.
+              Factored values from your analysis. Same sign if the column bends in a single curve,
+              opposite signs for double curvature. Where both pairs are given, the combined check
+              for bending about both axes is made for you.
             </p>
           </fieldset>
 
@@ -334,26 +358,50 @@ export function ColumnDesignForm() {
                 }))}
               />
             </div>
+            <SelectField
+              name="fyvMpa"
+              label="Link steel, fyv"
+              options={LINK_STEEL_GRADES_MPA.map((n) => ({
+                value: String(n),
+                label: `${n} N/mm²`,
+              }))}
+            />
           </fieldset>
 
-          {code.usesNationalParameters ? (
-            <AdvancedSection subtitle="alpha_cc, partial factors, creep ratio">
-              <NumberField
-                name="alphaCc"
-                label="alpha_cc (long-term strength factor)"
-                hint="EN 1992-1-1 recommends 1.0; the UK National Annex uses 0.85, which is the default here. Override if your project specifies otherwise."
-              />
-              <div className="grid grid-cols-2 gap-2.5">
-                <NumberField name="gammaC" label="Concrete factor, gamma_c" />
-                <NumberField name="gammaS" label="Steel factor, gamma_s" />
-              </div>
-              <NumberField
-                name="creepRatio"
-                label="Effective creep ratio, phi_ef"
-                hint="Only affects slender columns. 2.0 is a typical assumption; raise it for heavily sustained load."
-              />
-            </AdvancedSection>
-          ) : null}
+          <AdvancedSection
+            subtitle={
+              code.usesNationalParameters
+                ? "Design shear, alpha_cc, partial factors, creep ratio"
+                : "Design shear"
+            }
+          >
+            <p className="text-[12.5px] leading-snug text-muted-foreground">
+              Shear is worked out from the end moments by statics. Enter your own value if the
+              column also carries a transverse load or sway shear from your frame analysis.
+            </p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <NumberField name="shearHKn" label="Shear along h" unit="kN" placeholder="auto" />
+              <NumberField name="shearBKn" label="Shear along b" unit="kN" placeholder="auto" />
+            </div>
+            {code.usesNationalParameters ? (
+              <>
+                <NumberField
+                  name="alphaCc"
+                  label="alpha_cc (long-term strength factor)"
+                  hint="EN 1992-1-1 recommends 1.0; the UK National Annex uses 0.85, which is the default here. Override if your project specifies otherwise."
+                />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <NumberField name="gammaC" label="Concrete factor, gamma_c" />
+                  <NumberField name="gammaS" label="Steel factor, gamma_s" />
+                </div>
+                <NumberField
+                  name="creepRatio"
+                  label="Effective creep ratio, phi_ef"
+                  hint="Only affects slender columns. 2.0 is a typical assumption; raise it for heavily sustained load."
+                />
+              </>
+            ) : null}
+          </AdvancedSection>
         </form>
 
         {/* Results */}
@@ -395,12 +443,14 @@ export function ColumnDesignForm() {
             <EmptyState onExample={() => form.reset(columnDesignDefaults)} />
           )}
           <HowItWorks
-            summary="You give the column's section, bars, height and the axial load and end moments from your analysis. It works out how slender the column is. A short column is designed for the larger end moment (or a minimum eccentricity); a slender one gets an extra second-order moment from its own bending. It then builds the section's interaction diagram, which is the capacity for every combination of axial load and moment, using strain compatibility, and checks your design point sits inside it. The steel limits, bar spacing and link rules are checked alongside, each with its clause."
+            summary="You give the column's section, bars, height, and the axial load and end moments from your analysis. For each axis it works out how slender the column is. A short column is designed for the larger end moment (or a minimum eccentricity); a slender one gets an extra second-order moment from its own bending. It then builds the section's interaction diagram, which is the capacity for every combination of axial load and moment, using strain compatibility, and checks your design point sits inside it. Where bending acts about both axes, a combined check applies. Shear is checked in both directions and sets the link spacing where it needs to. The steel limits, bar spacing and link rules are checked alongside, each with its clause."
             points={[
               "Eurocode 2 and BS 8110 are both built in. Switching the code resets grades and factors to that code's defaults, and the sheet states which code every number comes from.",
-              "The diagram shows how close you are: a point well inside the curve has spare capacity, one outside fails. Utilisation is design moment over moment capacity at your axial load.",
-              "Steel needed for strength is the least steel, with the same bar layout shape, that carries the design moment. Compare it with what you provide to see the margin.",
-              "Covered: braced rectangular columns, symmetric bars, bending about one axis, axial compression. Not covered: biaxial bending, sway (unbraced) columns, the other axis, shear, circular columns and fire.",
+              "Both axes are always checked. A column with no moment about one axis still gets that axis's slenderness and minimum-eccentricity moment, because a slender column can fail on its weak side.",
+              "The minimum-eccentricity moment is applied about one axis at a time, never both together, as both codes allow. The combined check uses the real moments for the other axis.",
+              "Shear comes from the end moments by statics unless you enter it. Axial compression raises the concrete's shear resistance in both codes. Links resist shear with two legs in each direction, which ignores cross-ties.",
+              "The diagram shows how close you are: a point well inside the curve has spare capacity, one outside fails. Utilisation is the highest of the checks, with the governing one named.",
+              "Covered: braced rectangular columns, symmetric bars, bending about either or both axes, axial compression, shear. Not covered: sway (unbraced) columns, circular columns and fire. Sway belongs with a whole-frame analysis.",
               "This is a preliminary check to support a design, not a substitute for a full design by a registered engineer.",
             ]}
           />
@@ -422,7 +472,7 @@ function EmptyState({ onExample }: { onExample: () => void }) {
       <RectangleVertical className="size-6 text-muted-foreground" aria-hidden="true" />
       <h2 className="mt-3 font-heading text-lg font-bold">Complete the column details</h2>
       <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
-        Fix any highlighted fields and the interaction diagram, checks and working appear here.
+        Fix any highlighted fields and the interaction diagrams, checks and working appear here.
       </p>
       <Button
         variant="outline"
@@ -451,7 +501,7 @@ function inputsSummaryFor(input: FormOutput): Array<{ label: string; value: stri
       : END_CONDITION_FACTORS[input.endCondition];
   return [
     { label: "Design code", value: code.name },
-    { label: "Section (b × h)", value: `${formatTrimmed(input.bMm, 0)} × ${formatTrimmed(input.hMm, 0)} mm, bending along h` },
+    { label: "Section (b × h)", value: `${formatTrimmed(input.bMm, 0)} × ${formatTrimmed(input.hMm, 0)} mm` },
     { label: "Cover to links", value: `${formatTrimmed(input.coverMm, 0)} mm` },
     {
       label: "Main bars",
@@ -465,11 +515,19 @@ function inputsSummaryFor(input: FormOutput): Array<{ label: string; value: stri
     },
     { label: "Axial load", value: `${formatTrimmed(input.nEdKn, 1)} kN` },
     {
-      label: "End moments (top / bottom)",
+      label: "End moments along h (top / bottom)",
       value: `${formatTrimmed(input.mTopKnm, 2)} / ${formatTrimmed(input.mBotKnm, 2)} kNm`,
     },
+    {
+      label: "End moments along b (top / bottom)",
+      value: `${formatTrimmed(input.mTopBKnm, 2)} / ${formatTrimmed(input.mBotBKnm, 2)} kNm`,
+    },
+    {
+      label: "Design shear (along h / along b)",
+      value: `${input.shearHKn === undefined ? "from end moments" : `${formatTrimmed(input.shearHKn, 1)} kN`} / ${input.shearBKn === undefined ? "from end moments" : `${formatTrimmed(input.shearBKn, 1)} kN`}`,
+    },
     { label: "Concrete", value: grade?.label ?? String(input.concreteStrengthMpa) },
-    { label: "Main steel", value: `${input.fyMpa} N/mm²` },
+    { label: "Steel (main / links)", value: `${input.fyMpa} / ${input.fyvMpa} N/mm²` },
   ];
 }
 

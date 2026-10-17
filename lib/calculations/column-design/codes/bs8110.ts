@@ -1,9 +1,13 @@
-import { BS8110_GRADES } from "../../beam-design/codes/bs8110";
+import { BS8110_GRADES, bs8110Vc } from "../../beam-design/codes/bs8110";
 import { formatNumber, formatTrimmed } from "../../format";
 import type { Assumption, SourceReference, WorkingStep } from "../../types";
 import type {
+  BiaxialInput,
+  BiaxialOutcome,
   ColumnCode,
   ColumnParameters,
+  ColumnShearInput,
+  ColumnShearOutcome,
   LinkRules,
   SlendernessInput,
   SlendernessOutcome,
@@ -22,6 +26,12 @@ import type {
 
 /** Braced columns are short up to this l_e / h. BS 8110-1 cl. 3.8.1.3. */
 const SHORT_LIMIT = 15;
+/** Link steel strength is capped at this in design. BS 8110-1 cl. 3.4.5.1. */
+const FYV_DESIGN_CAP = 460;
+/** Upper limit on shear stress regardless of grade, N/mm². BS 8110-1 cl. 3.4.5.2. */
+const V_MAX_ABSOLUTE = 5;
+/** Shear stress carried by nominal links, N/mm². BS 8110-1 Table 3.7. */
+const NOMINAL_LINK_STRESS = 0.4;
 /** Clear height limit as a multiple of the smaller dimension, braced. BS 8110-1 cl. 3.8.1.7. */
 const MAX_HEIGHT_TO_DIMENSION = 60;
 
@@ -55,8 +65,10 @@ function slenderness(input: SlendernessInput): SlendernessOutcome {
 
   let additional = 0;
   let design: number;
+  let designNoMin: number;
 
   if (!slender) {
+    designNoMin = m2;
     design = Math.max(m2, minimumMoment);
     steps.push({
       title: "Design moment (short column)",
@@ -73,7 +85,8 @@ function slenderness(input: SlendernessInput): SlendernessOutcome {
     const au = betaA * k * g.hMm;
     additional = (nEdKn * au) / 1000;
     const mi = Math.max(0.4 * m1 + 0.6 * m2, 0.4 * m2);
-    design = Math.max(m2, mi + additional, m1 + additional / 2, minimumMoment);
+    designNoMin = Math.max(m2, mi + additional, m1 + additional / 2);
+    design = Math.max(designNoMin, minimumMoment);
 
     steps.push(
       {
@@ -102,9 +115,166 @@ function slenderness(input: SlendernessInput): SlendernessOutcome {
     minimumMomentKnm: minimumMoment,
     secondOrderKnm: additional,
     designMomentKnm: design,
+    designMomentNoMinKnm: designNoMin,
     scopeDemand: heightMm / bPrime,
     scopeLimit: MAX_HEIGHT_TO_DIMENSION,
     scopeLabel: "Clear height within 60 times the smaller dimension",
+    steps,
+  };
+}
+
+/** Table 3.22 of BS 8110-1: beta against N / (b h f_cu), interpolated linearly. */
+const BETA_TABLE: ReadonlyArray<readonly [number, number]> = [
+  [0, 1.0],
+  [0.1, 0.88],
+  [0.2, 0.77],
+  [0.3, 0.65],
+  [0.4, 0.53],
+  [0.5, 0.42],
+  [0.6, 0.3],
+];
+
+export function bs8110BiaxialBeta(nRatio: number): number {
+  if (nRatio <= 0) return BETA_TABLE[0][1];
+  const last = BETA_TABLE[BETA_TABLE.length - 1];
+  if (nRatio >= last[0]) return last[1];
+  for (let i = 1; i < BETA_TABLE.length; i++) {
+    const [x1, y1] = BETA_TABLE[i];
+    const [x0, y0] = BETA_TABLE[i - 1];
+    if (nRatio <= x1) return y0 + ((y1 - y0) * (nRatio - x0)) / (x1 - x0);
+  }
+  return last[1];
+}
+
+function biaxial(input: BiaxialInput): BiaxialOutcome {
+  const { nEdKn, h, b, grossAreaMm2, params } = input;
+  const nRatio = (nEdKn * 1000) / (grossAreaMm2 * params.concreteStrength);
+  const beta = bs8110BiaxialBeta(nRatio);
+
+  // The minimum eccentricity is applied about one axis at a time, never both.
+  const combo = (mh: number, mb: number) => {
+    const alongH = mh / h.effectiveDepthMm >= mb / b.effectiveDepthMm;
+    if (alongH) {
+      const m = mh + beta * (h.effectiveDepthMm / b.effectiveDepthMm) * mb;
+      return { axis: "h" as const, moment: m, capacity: h.capacityKnm, util: m / h.capacityKnm };
+    }
+    const m = mb + beta * (b.effectiveDepthMm / h.effectiveDepthMm) * mh;
+    return { axis: "b" as const, moment: m, capacity: b.capacityKnm, util: m / b.capacityKnm };
+  };
+  const first = combo(h.fullKnm, b.actualKnm);
+  const second = combo(h.actualKnm, b.fullKnm);
+  const governing = first.util >= second.util ? first : second;
+  const used = first.util >= second.util ? "minimum eccentricity along h" : "minimum eccentricity along b";
+
+  const steps: WorkingStep[] = [
+    {
+      title: "Biaxial bending",
+      formula:
+        "if M_h / h' >= M_b / b' :  M'_h = M_h + beta × (h' / b') × M_b ;  otherwise  M'_b = M_b + beta × (b' / h') × M_h",
+      substitution: `N / (b h f_cu) = ${formatNumber(nEdKn, 0)} × 10³ / (${formatNumber(grossAreaMm2, 0)} × ${params.concreteStrength}) = ${formatTrimmed(nRatio, 3)}, beta = ${formatTrimmed(beta, 3)} ;  h' = ${formatNumber(h.effectiveDepthMm, 1)} mm, b' = ${formatNumber(b.effectiveDepthMm, 1)} mm ;  governing case (${used}): M_h = ${formatNumber(governing === first ? h.fullKnm : h.actualKnm, 1)}, M_b = ${formatNumber(governing === first ? b.actualKnm : b.fullKnm, 1)} kNm`,
+      result: `M'_${governing.axis} = ${formatNumber(governing.moment, 1)} kNm against M_Rd = ${formatNumber(governing.capacity, 1)} kNm`,
+      note: "BS 8110-1 cl. 3.8.4.5 and Table 3.22 (beta interpolated linearly). The design is then a single-axis check on the increased moment. The minimum-eccentricity moment is applied about one axis at a time (cl. 3.8.2.4).",
+    },
+  ];
+
+  return {
+    applies: true,
+    utilisation: governing.util,
+    demand: `${formatNumber(governing.moment, 1)} kNm`,
+    capacity: `${formatNumber(governing.capacity, 1)} kNm`,
+    steps,
+  };
+}
+
+function shear(input: ColumnShearInput): ColumnShearOutcome {
+  const { vEdKn, nEdKn, momentKnm, widthMm: b, effectiveDepthMm: d, overallDepthMm: h, params } = input;
+  const fcu = params.concreteStrength;
+  const V = vEdKn * 1000;
+  const N = nEdKn * 1000;
+  const acMm2 = b * h;
+  const fyvDesign = 0.87 * Math.min(params.fyv, FYV_DESIGN_CAP);
+
+  const v = V / (b * d);
+  const vMax = Math.min(0.8 * Math.sqrt(fcu), V_MAX_ABSOLUTE);
+  const vc = bs8110Vc(input.tensionSteelMm2, b, d, fcu);
+
+  // Axial compression raises the concrete shear stress. BS 8110-1 cl. 3.4.5.12.
+  const vhOverM = momentKnm > 0 ? Math.min(1, (V * h) / (momentKnm * 1e6)) : 1;
+  const enhanced = vc + 0.6 * (N / acMm2) * vhOverM;
+  const cap = vc * Math.sqrt(1 + (0.06 * N) / (acMm2 * vc));
+  const vcAxial = Math.min(enhanced, cap);
+
+  const steps: WorkingStep[] = [
+    {
+      title: "Shear stress",
+      formula: "v = V / (b × d) ;  v_max = min(0.8 × sqrt(f_cu), 5 N/mm²)",
+      substitution: `v = ${formatNumber(V, 0)} / (${formatNumber(b, 0)} × ${formatNumber(d, 1)}) ;  v_max = min(0.8 × sqrt(${fcu}), 5)`,
+      result: `v = ${formatTrimmed(v, 3)} N/mm², v_max = ${formatTrimmed(vMax, 3)} N/mm²`,
+      note: "BS 8110-1 cl. 3.4.5.2.",
+    },
+    {
+      title: "Concrete shear stress with axial load",
+      formula:
+        "v_c from Table 3.8 ;  v_c' = v_c + 0.6 × (N / A_c) × (V h / M) (V h / M at most 1) ;  not above v_c × sqrt(1 + 0.06 N / (A_c v_c))",
+      substitution: `v_c = ${formatTrimmed(vc, 3)} N/mm² (bars on one face, ${formatTrimmed(Math.min((100 * input.tensionSteelMm2) / (b * d), 3), 3)}%) ;  V h / M = ${formatTrimmed(vhOverM, 3)} ;  v_c' = ${formatTrimmed(vc, 3)} + 0.6 × ${formatTrimmed(N / acMm2, 2)} × ${formatTrimmed(vhOverM, 3)} = ${formatTrimmed(enhanced, 3)}, cap ${formatTrimmed(cap, 3)}`,
+      result: `v_c' = ${formatTrimmed(vcAxial, 3)} N/mm²`,
+      note: "BS 8110-1 cl. 3.4.5.12 for members with axial compression, applied to columns by cl. 3.8.4.6.",
+    },
+  ];
+
+  const capacityKn = (vcAxial * b * d) / 1000;
+  const maxKn = (vMax * b * d) / 1000;
+
+  if (v > vMax) {
+    return {
+      verdict: "section-inadequate",
+      vEdKn,
+      concreteCapacityKn: capacityKn,
+      maxCapacityKn: maxKn,
+      aswPerSMmReq: 0,
+      steps,
+    };
+  }
+
+  if (v <= 0.5 * vcAxial) {
+    steps.push({
+      title: "Links for shear",
+      formula: "v <= 0.5 v_c': no links are needed for strength",
+      substitution: `v = ${formatTrimmed(v, 3)} <= ${formatTrimmed(0.5 * vcAxial, 3)} N/mm²`,
+      result: "Link size and spacing are set by the detailing rules",
+      note: "BS 8110-1 Table 3.7 and cl. 3.12.7.",
+    });
+    return {
+      verdict: "links-minimum",
+      vEdKn,
+      concreteCapacityKn: capacityKn,
+      maxCapacityKn: maxKn,
+      aswPerSMmReq: 0,
+      steps,
+    };
+  }
+
+  const nominal = v <= vcAxial + NOMINAL_LINK_STRESS;
+  const aswPerS = nominal
+    ? (NOMINAL_LINK_STRESS * b) / fyvDesign
+    : (b * (v - vcAxial)) / fyvDesign;
+  steps.push({
+    title: nominal ? "Nominal links" : "Links for shear",
+    formula: nominal
+      ? "A_sv / s_v >= 0.4 × b / (0.87 × f_yv)"
+      : "A_sv / s_v >= b × (v − v_c') / (0.87 × f_yv)",
+    substitution: nominal
+      ? `A_sv / s_v >= 0.4 × ${formatNumber(b, 0)} / (0.87 × ${Math.min(params.fyv, FYV_DESIGN_CAP)})`
+      : `A_sv / s_v >= ${formatNumber(b, 0)} × (${formatTrimmed(v, 3)} − ${formatTrimmed(vcAxial, 3)}) / (0.87 × ${Math.min(params.fyv, FYV_DESIGN_CAP)})`,
+    result: `${formatTrimmed(aswPerS, 4)} mm²/mm`,
+    note: "BS 8110-1 Table 3.7. Two link legs resist shear in each direction.",
+  });
+  return {
+    verdict: nominal ? "links-minimum" : "links-designed",
+    vEdKn,
+    concreteCapacityKn: capacityKn,
+    maxCapacityKn: maxKn,
+    aswPerSMmReq: aswPerS,
     steps,
   };
 }
@@ -146,7 +316,7 @@ function linkRules(mainBarDiameterMm: number): LinkRules {
 function assumptions(p: ColumnParameters): Assumption[] {
   return [
     { label: "Concrete strength f_cu", value: `${p.concreteStrength} N/mm²` },
-    { label: "Steel yield f_y", value: `${p.fy} N/mm²` },
+    { label: "Steel yield f_y (main / links)", value: `${p.fy} / ${p.fyv} N/mm²` },
     {
       label: "Stress block",
       value: "Rectangular, 0.45 f_cu over 0.9 x",
@@ -156,6 +326,16 @@ function assumptions(p: ColumnParameters): Assumption[] {
       label: "Section resistance",
       value: "Strain compatibility",
       source: "Concrete strain 0.0035, reduced under high axial load (cl. 3.4.4.1)",
+    },
+    {
+      label: "Shear",
+      value: "Table 3.8 v_c raised for axial load, two link legs per direction",
+      source: "BS 8110-1 cl. 3.4.5.12 and Table 3.7. Link steel capped at 460 N/mm²",
+    },
+    {
+      label: "Biaxial bending",
+      value: "Single-axis check on an increased moment (beta from Table 3.22)",
+      source: "BS 8110-1 cl. 3.8.4.5",
     },
     {
       label: "Braced column",
@@ -168,7 +348,7 @@ function assumptions(p: ColumnParameters): Assumption[] {
 const basis: readonly SourceReference[] = [
   {
     label: "BS 8110-1:1997",
-    note: "Slenderness and additional moments: cl. 3.8.1 to 3.8.3. Resistance: cl. 3.4.4.1, 3.8.4. Detailing: cl. 3.12.5 to 3.12.7.",
+    note: "Slenderness and additional moments: cl. 3.8.1 to 3.8.3. Resistance and biaxial bending: cl. 3.4.4.1, 3.8.4. Shear: cl. 3.4.5. Detailing: cl. 3.12.5 to 3.12.7.",
   },
   {
     label: "Status of BS 8110",
@@ -185,6 +365,7 @@ export const bs8110Column: ColumnCode = {
   defaults: {
     concreteStrength: 30,
     fy: 460,
+    fyv: 460,
     alphaCc: 0.85,
     gammaC: 1.5,
     gammaS: 1.15,
@@ -196,6 +377,9 @@ export const bs8110Column: ColumnCode = {
     linkRules: "BS 8110-1 cl. 3.12.7",
     slendernessScope: "BS 8110-1 cl. 3.8.1.7",
     minimumBars: "BS 8110-1 cl. 3.12.5.3",
+    shear: "BS 8110-1 cl. 3.4.5 and 3.8.4.6",
+    shearLimit: "BS 8110-1 cl. 3.4.5.2",
+    biaxial: "BS 8110-1 cl. 3.8.4.5",
   },
   stressModel(p) {
     return { blockRatio: 0.9, blockStress: 0.45 * p.concreteStrength, steelYield: 0.87 * p.fy };
@@ -205,6 +389,8 @@ export const bs8110Column: ColumnCode = {
   },
   slenderness,
   steelLimits,
+  shear,
+  biaxial,
   linkRules: (mainBar) => linkRules(mainBar),
   assumptions,
   basis,

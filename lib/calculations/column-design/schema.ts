@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAIN_STEEL_GRADES_MPA } from "../beam-design/constants";
+import { LINK_STEEL_GRADES_MPA, MAIN_STEEL_GRADES_MPA } from "../beam-design/constants";
 import { omitKeys } from "../omit-keys";
 import { isStandardBarDiameter, STANDARD_BAR_DIAMETERS_MM } from "../reinforcement";
 import { COLUMN_CODES, DEFAULT_COLUMN_CODE_ID, getColumnCode } from "./codes";
@@ -16,6 +16,7 @@ import {
   HEIGHT_MAX_M,
   HEIGHT_MIN_M,
   MOMENT_MAX_KNM,
+  SHEAR_MAX_KN,
   type CodeId,
   type EndCondition,
 } from "./constants";
@@ -40,6 +41,17 @@ function signedMoment(whatFor: string) {
   return numberField(`the ${whatFor} in kNm`).refine((n) => Math.abs(n) <= MOMENT_MAX_KNM, {
     error: `A moment above ${MOMENT_MAX_KNM.toLocaleString("en-US")} kNm is outside what this tool covers; check the units.`,
   });
+}
+
+/** A shear force that may be left blank, meaning "work it out from the end moments". */
+function optionalShear(whatFor: string) {
+  return z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    numberField(`the design shear ${whatFor} in kN`)
+      .min(0, "Shear can't be negative; enter its size.")
+      .max(SHEAR_MAX_KN, `A shear above ${SHEAR_MAX_KN.toLocaleString("en-US")} kN is outside what this tool covers; check the units.`)
+      .optional(),
+  );
 }
 
 const DIAMETER_LIST = STANDARD_BAR_DIAMETERS_MM.join(", ");
@@ -97,12 +109,21 @@ export const columnDesignInputSchema = z
       .max(AXIAL_MAX_KN, `A load above ${AXIAL_MAX_KN.toLocaleString("en-US")} kN is outside what this tool covers; check the units.`),
     mTopKnm: signedMoment("moment at the top of the column"),
     mBotKnm: signedMoment("moment at the bottom of the column"),
+    // Moments about the other axis (acting along b). Zero means none.
+    mTopBKnm: signedMoment("moment at the top of the column along b"),
+    mBotBKnm: signedMoment("moment at the bottom of the column along b"),
+    shearHKn: optionalShear("along h"),
+    shearBKn: optionalShear("along b"),
 
     // Materials
     concreteStrengthMpa: numberField("the concrete strength"),
     fyMpa: numberField("the main steel strength").refine(
       (n) => (MAIN_STEEL_GRADES_MPA as readonly number[]).includes(n),
       { error: `Choose a main steel strength: ${MAIN_STEEL_GRADES_MPA.join(" or ")} N/mm².` },
+    ),
+    fyvMpa: numberField("the link steel strength").refine(
+      (n) => (LINK_STEEL_GRADES_MPA as readonly number[]).includes(n),
+      { error: `Choose a link steel strength: ${LINK_STEEL_GRADES_MPA.join(", ")} N/mm².` },
     ),
 
     // Eurocode 2 parameters
@@ -179,6 +200,7 @@ export function columnCodeDefaultsForForm(id: CodeId) {
   return {
     concreteStrengthMpa: String(d.concreteStrength),
     fyMpa: String(d.fy),
+    fyvMpa: String(d.fyv),
     alphaCc: String(d.alphaCc),
     gammaC: String(d.gammaC),
     gammaS: String(d.gammaS),
@@ -202,6 +224,10 @@ export const columnDesignDefaults: ColumnDesignFormValues = {
   nEdKn: "1200",
   mTopKnm: "60",
   mBotKnm: "30",
+  mTopBKnm: "0",
+  mBotBKnm: "0",
+  shearHKn: "",
+  shearBKn: "",
   ...columnCodeDefaultsForForm(DEFAULT_COLUMN_CODE_ID),
 };
 

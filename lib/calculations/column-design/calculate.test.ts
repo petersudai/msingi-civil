@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { calculateColumnDesign } from "./calculate";
-import { bs8110Column } from "./codes/bs8110";
-import { ec2Column } from "./codes/ec2";
+import { bs8110BiaxialBeta, bs8110Column } from "./codes/bs8110";
+import { ec2AlphaCw, ec2BiaxialExponent, ec2Column } from "./codes/ec2";
+import { bs8110Vc } from "../beam-design/codes/bs8110";
 import {
   columnCodeDefaultsForForm,
   columnDesignDefaults,
@@ -61,11 +62,11 @@ describe("default Eurocode 2 column (300 x 400, 8 x Ø20, N 1200, M 60 / 30)", (
     const n = 1.2e6 / (300 * 400 * FCD);
     const omega = (o.bars.areaMm2 * FYD) / (300 * 400 * FCD);
     const lim = (20 * (1 / 1.4) * Math.sqrt(1 + 2 * omega) * (1.7 - 0.5)) / Math.sqrt(n);
-    expect(o.slenderness.effectiveLengthMm).toBeCloseTo(l0, 6);
-    expect(o.slenderness.slenderness).toBeCloseTo(lambda, 6);
-    expect(o.slenderness.slendernessLimit).toBeCloseTo(lim, 6);
-    expect(o.slenderness.slender).toBe(false);
-    expect(o.slenderness.designMomentKnm).toBeCloseTo(60, 6);
+    expect(o.axes.h.slenderness.effectiveLengthMm).toBeCloseTo(l0, 6);
+    expect(o.axes.h.slenderness.slenderness).toBeCloseTo(lambda, 6);
+    expect(o.axes.h.slenderness.slendernessLimit).toBeCloseTo(lim, 6);
+    expect(o.axes.h.slenderness.slender).toBe(false);
+    expect(o.axes.h.slenderness.designMomentKnm).toBeCloseTo(60, 6);
   });
 
   it("moment capacity equals an independent section built from the bar positions", () => {
@@ -83,8 +84,8 @@ describe("default Eurocode 2 column (300 x 400, 8 x Ø20, N 1200, M 60 / 30)", (
       { blockRatio: 0.8, blockStress: FCD, steelYield: FYD },
       1200,
     );
-    expect(o.momentCapacityKnm).toBeCloseTo(cap!.mKnm, 6);
-    expect(o.momentUtilisation).toBeCloseTo(60 / cap!.mKnm, 6);
+    expect(o.axes.h.momentCapacityKnm).toBeCloseTo(cap!.mKnm, 6);
+    expect(o.axes.h.utilisation).toBeCloseTo(60 / cap!.mKnm, 6);
   });
 
   it("is adequate, and needs less steel than provided", () => {
@@ -104,7 +105,7 @@ describe("default Eurocode 2 column (300 x 400, 8 x Ø20, N 1200, M 60 / 30)", (
   });
 
   it("returns an interaction diagram with the design point on it", () => {
-    expect(r.charts).toHaveLength(1);
+    expect(r.charts).toHaveLength(2);
     const chart = r.charts![0];
     expect(chart.series[0].points.length).toBeGreaterThan(20);
     expect(chart.markers[0]).toMatchObject({ x: 60, y: 1200, status: "pass" });
@@ -126,7 +127,7 @@ describe("slender Eurocode 2 column, nominal curvature restated by hand", () => 
       mBotKnm: 40,
     }),
   );
-  const s = r.outputs.slenderness;
+  const s = r.outputs.axes.h.slenderness;
 
   const as = 4 * Math.PI * 100;
   const l0 = 6000;
@@ -171,7 +172,7 @@ describe("slender Eurocode 2 column, nominal curvature restated by hand", () => 
         mBotKnm: 40,
       }),
     );
-    expect(taller.outputs.slenderness.designMomentKnm).toBeGreaterThan(s.designMomentKnm);
+    expect(taller.outputs.axes.h.slenderness.designMomentKnm).toBeGreaterThan(s.designMomentKnm);
   });
 });
 
@@ -190,7 +191,7 @@ describe("BS 8110 column", () => {
 
   it("additional moment matches the cl. 3.8.3 chain by hand", () => {
     const r = calculateColumnDesign(input(slenderInput));
-    const s = r.outputs.slenderness;
+    const s = r.outputs.axes.h.slenderness;
     const as = 4 * Math.PI * 100;
     const nuz = 0.45 * 30 * 90000 + 0.95 * 460 * as;
     const nbal = 0.25 * 30 * 300 * 252;
@@ -207,8 +208,8 @@ describe("BS 8110 column", () => {
   it("a stocky column takes the larger end moment or the minimum eccentricity", () => {
     const r = calculateColumnDesign(input(bsOverrides({ mTopKnm: 0, mBotKnm: 0, nEdKn: 1000 })));
     // e_min = min(0.05 × 400, 20) = 20 mm, so M = 1000 × 0.020 = 20 kNm.
-    expect(r.outputs.slenderness.slender).toBe(false);
-    expect(r.outputs.slenderness.designMomentKnm).toBeCloseTo(20, 6);
+    expect(r.outputs.axes.h.slenderness.slender).toBe(false);
+    expect(r.outputs.axes.h.slenderness.designMomentKnm).toBeCloseTo(20, 6);
   });
 
   it("steel limits and links follow cl. 3.12", () => {
@@ -236,7 +237,7 @@ describe("curvature and sign convention", () => {
       heightMm: 3500,
       beta: 0.85,
       geometry: { bMm: 300, hMm: 400, dMm: 352, asTotalMm2: 2513, steelRadiusMm: 152 },
-      params: { concreteStrength: 30, fy: 500, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 },
+      params: { concreteStrength: 30, fy: 500, fyv: 500, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 },
     });
     const double = ec2Column.slenderness({
       nEdKn: 1200,
@@ -245,14 +246,14 @@ describe("curvature and sign convention", () => {
       heightMm: 3500,
       beta: 0.85,
       geometry: { bMm: 300, hMm: 400, dMm: 352, asTotalMm2: 2513, steelRadiusMm: 152 },
-      params: { concreteStrength: 30, fy: 500, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 },
+      params: { concreteStrength: 30, fy: 500, fyv: 500, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 },
     });
     // C = 0.7 for equal single-curvature moments, 2.7 for equal and opposite ones.
     expect(double.slendernessLimit / single.slendernessLimit).toBeCloseTo(2.7 / 0.7, 6);
   });
 
   it("BS 8110 reports the moment shape through M1 being negative in double curvature", () => {
-    const params = { concreteStrength: 30, fy: 460, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 };
+    const params = { concreteStrength: 30, fy: 460, fyv: 460, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 };
     const geometry = { bMm: 300, hMm: 300, dMm: 252, asTotalMm2: 1257, steelRadiusMm: 102 };
     const common = { nEdKn: 800, heightMm: 6000, beta: 1, geometry, params };
     const single = bs8110Column.slenderness({ ...common, mTopKnm: 40, mBotKnm: 40 });
@@ -265,14 +266,14 @@ describe("checks flag what fails", () => {
   it("an overloaded column fails the axial check and has no moment capacity", () => {
     const r = calculateColumnDesign(input({ nEdKn: 6000 }));
     expect(r.outputs.adequate).toBe(false);
-    expect(r.outputs.momentCapacityKnm).toBeNull();
+    expect(r.outputs.axes.h.momentCapacityKnm).toBeNull();
     expect(r.checks.find((c) => c.label.startsWith("Axial"))?.status).toBe("fail");
     expect(r.outputs.strengthSteelMm2).toBeNull();
   });
 
   it("too large a moment fails and needs more steel than provided", () => {
     const r = calculateColumnDesign(input({ mTopKnm: 400, mBotKnm: 300 }));
-    const check = r.checks.find((c) => c.label.startsWith("Design moment"));
+    const check = r.checks.find((c) => c.label.startsWith("Moment along h"));
     expect(check?.status).toBe("fail");
     expect(r.outputs.adequate).toBe(false);
     if (r.outputs.strengthSteelMm2 !== null) {
@@ -312,27 +313,6 @@ describe("steel needed for strength", () => {
     expect(heavy.strengthSteelMm2!).toBeGreaterThan(light.strengthSteelMm2!);
   });
 
-  it("matches the capacity: steel needed for strength carries the design moment exactly", () => {
-    // Rebuild a section whose steel is scaled to the answer; its capacity must equal the demand.
-    const base = calculateColumnDesign(input({ mTopKnm: 150, mBotKnm: 75 }));
-    const need = base.outputs.strengthSteelMm2!;
-    const scale = need / base.outputs.bars.areaMm2;
-    const section: SectionDefinition = {
-      bMm: 300,
-      hMm: 400,
-      rows: [
-        { yMm: 48, areaMm2: 3 * Math.PI * 100 * scale },
-        { yMm: 200, areaMm2: 2 * Math.PI * 100 * scale },
-        { yMm: 352, areaMm2: 3 * Math.PI * 100 * scale },
-      ],
-    };
-    const cap = momentCapacityAtAxial(
-      section,
-      { blockRatio: 0.8, blockStress: FCD, steelYield: FYD },
-      1200,
-    );
-    expect(cap!.mKnm).toBeCloseTo(base.outputs.slenderness.designMomentKnm, 1);
-  });
 });
 
 describe("input parsing ignores fields that don't apply", () => {
@@ -361,5 +341,327 @@ describe("input parsing ignores fields that don't apply", () => {
     expect(
       parseColumnDesignInput({ ...columnDesignDefaults, bMm: "150", coverMm: "70" }).success,
     ).toBe(false);
+  });
+});
+
+describe("steel needed for strength, bracketed against real bar sizes", () => {
+  const loads = { mTopKnm: 150, mBotKnm: 75 };
+  const need = (d: number) =>
+    calculateColumnDesign(input({ ...loads, mainBarDiameterMm: d })).outputs.strengthSteelMm2!;
+
+  it("is about the same whatever bar size you happened to enter (the layout shape is what matters)", () => {
+    const n16 = need(16);
+    const n20 = need(20);
+    const n25 = need(25);
+    expect(Math.abs(n16 - n20) / n20).toBeLessThan(0.05);
+    expect(Math.abs(n25 - n20) / n20).toBeLessThan(0.05);
+  });
+
+  it("separates bar sizes that carry the loads from ones that don't", () => {
+    const area = (d: number) => 8 * Math.PI * (d / 2) ** 2;
+    const n = need(20);
+    expect(area(16)).toBeLessThan(n);
+    expect(area(20)).toBeGreaterThan(n);
+    const small = calculateColumnDesign(input({ ...loads, mainBarDiameterMm: 16 }));
+    const big = calculateColumnDesign(input({ ...loads, mainBarDiameterMm: 20 }));
+    const flexureOk = (r: typeof small) =>
+      r.checks
+        .filter((c) => c.label.startsWith("Moment along") || c.label.startsWith("Combined bending"))
+        .every((c) => c.status === "pass");
+    expect(flexureOk(small)).toBe(false);
+    expect(flexureOk(big)).toBe(true);
+  });
+});
+
+describe("the other axis (bending along b)", () => {
+  const r = calculateColumnDesign(input());
+  const b = r.outputs.axes.b;
+
+  // Default column with no minor-axis moments: the section turned a quarter turn.
+  const l0 = 0.85 * 3500;
+  const lambda = l0 / (300 / Math.sqrt(12));
+  const n = 1.2e6 / (300 * 400 * FCD);
+  const area = 8 * Math.PI * 100;
+  const omega = (area * FYD) / (300 * 400 * FCD);
+  const lim = (20 * (1 / 1.4) * Math.sqrt(1 + 2 * omega) * 0.7) / Math.sqrt(n);
+  // Bars sit at 48, 150 and 252 mm across the 300 mm side: 3, 2 and 3 bars of the 8 bars... counted per row.
+  const rowAreas = [3, 2, 3].map((k) => k * Math.PI * 100);
+  const radius = Math.sqrt(
+    rowAreas.reduce((s, a, i) => s + a * ([48, 150, 252][i] - 150) ** 2, 0) / area,
+  );
+  const kr = Math.min(1, (1 + omega - n) / (1 + omega - 0.4));
+  const kphi = Math.max(1, 1 + (0.35 + 30 / 200 - lambda / 150) * 2);
+  const curvature = (kr * kphi * (FYD / 200000)) / (0.45 * (150 + radius));
+  const m2 = (1200 * ((curvature * l0 * l0) / 10)) / 1000;
+  const m0Ed = (1200 * (l0 / 400)) / 1000; // M_0e is zero with no end moments
+
+  it("is slender about the narrow side even though it is short about the deep one", () => {
+    expect(r.outputs.axes.h.slenderness.slender).toBe(false);
+    expect(b.slenderness.slender).toBe(true);
+    expect(b.slenderness.slenderness).toBeCloseTo(lambda, 6);
+    expect(b.slenderness.slendernessLimit).toBeCloseTo(lim, 6);
+  });
+
+  it("second-order and design moments match the restated chain", () => {
+    expect(b.slenderness.secondOrderKnm).toBeCloseTo(m2, 6);
+    expect(b.slenderness.designMomentKnm).toBeCloseTo(Math.max(m0Ed + m2, 24), 6);
+  });
+
+  it("uses the 400 mm side as the section width and the 300 mm side as the depth", () => {
+    expect(b.depthMm).toBe(300);
+    expect(b.widthMm).toBe(400);
+    expect(b.geometry.dMm).toBeCloseTo(300 - 48, 6);
+  });
+
+  it("is checked on its own sheet line and its own interaction diagram", () => {
+    expect(r.checks.some((c) => c.label.startsWith("Moment along b"))).toBe(true);
+    expect(r.charts).toHaveLength(2);
+    expect(r.charts![1].title).toContain("along b");
+  });
+
+  it("a real minor-axis moment raises the design moment", () => {
+    const withMoment = calculateColumnDesign(input({ mTopBKnm: 50, mBotBKnm: 50 }));
+    expect(withMoment.outputs.axes.b.slenderness.designMomentKnm).toBeGreaterThan(
+      b.slenderness.designMomentKnm,
+    );
+  });
+});
+
+describe("biaxial bending", () => {
+  const params = { concreteStrength: 30, fy: 500, fyv: 500, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 };
+  const axis = (key: "h" | "b", actual: number, cap: number, dim: number, d: number) => ({
+    key,
+    fullKnm: actual,
+    actualKnm: actual,
+    capacityKnm: cap,
+    slenderness: 30,
+    effectiveDepthMm: d,
+    dimensionMm: dim,
+  });
+
+  it("EC2 exponent: 1.0 up to 0.1, 1.5 at 0.7, 2.0 at 1.0, linear between", () => {
+    expect(ec2BiaxialExponent(0.05)).toBe(1.0);
+    expect(ec2BiaxialExponent(0.1)).toBe(1.0);
+    expect(ec2BiaxialExponent(0.4)).toBeCloseTo(1.25, 10);
+    expect(ec2BiaxialExponent(0.7)).toBeCloseTo(1.5, 10);
+    expect(ec2BiaxialExponent(0.85)).toBeCloseTo(1.75, 10);
+    expect(ec2BiaxialExponent(1.0)).toBe(2.0);
+    expect(ec2BiaxialExponent(1.4)).toBe(2.0);
+  });
+
+  it("EC2 Eq. 5.39 by hand: two equal 0.5 ratios give 2 × 0.5^a", () => {
+    const nRd = (120000 * FCD + 2513 * FYD) / 1000;
+    const a = ec2BiaxialExponent(1000 / nRd);
+    const out = ec2Column.biaxial({
+      nEdKn: 1000,
+      h: axis("h", 100, 200, 400, 352),
+      b: axis("b", 60, 120, 300, 252),
+      grossAreaMm2: 120000,
+      steelAreaMm2: 2513,
+      params,
+    });
+    expect(out.applies).toBe(true);
+    expect(out.utilisation).toBeCloseTo(2 * Math.pow(0.5, a), 6);
+  });
+
+  it("EC2 lets the directions be designed separately when one eccentricity is tiny", () => {
+    const out = ec2Column.biaxial({
+      nEdKn: 1000,
+      h: axis("h", 100, 200, 400, 352),
+      b: axis("b", 5, 120, 300, 252),
+      grossAreaMm2: 120000,
+      steelAreaMm2: 2513,
+      params,
+    });
+    expect(out.applies).toBe(false);
+    expect(out.utilisation).toBeNull();
+  });
+
+  it("EC2 needs the combined check when the slenderness differs by more than 2", () => {
+    const out = ec2Column.biaxial({
+      nEdKn: 1000,
+      h: { ...axis("h", 100, 200, 400, 352), slenderness: 20 },
+      b: { ...axis("b", 5, 120, 300, 252), slenderness: 50 },
+      grossAreaMm2: 120000,
+      steelAreaMm2: 2513,
+      params,
+    });
+    expect(out.applies).toBe(true);
+  });
+
+  it("BS 8110 beta table: 1.0, 0.88, 0.77, 0.65, 0.53, 0.42, 0.30, interpolated and clamped", () => {
+    expect(bs8110BiaxialBeta(0)).toBe(1.0);
+    expect(bs8110BiaxialBeta(0.1)).toBeCloseTo(0.88, 10);
+    expect(bs8110BiaxialBeta(0.25)).toBeCloseTo(0.71, 10);
+    expect(bs8110BiaxialBeta(0.5)).toBeCloseTo(0.42, 10);
+    expect(bs8110BiaxialBeta(0.6)).toBeCloseTo(0.3, 10);
+    expect(bs8110BiaxialBeta(0.9)).toBeCloseTo(0.3, 10);
+  });
+
+  it("BS 8110 cl. 3.8.4.5 by hand: M'h = Mh + beta (h'/b') Mb", () => {
+    const beta = 0.77 - 0.12 * ((1e6 / (120000 * 30) - 0.2) / 0.1);
+    const mPrime = 100 + beta * (352 / 252) * 60;
+    const out = bs8110Column.biaxial({
+      nEdKn: 1000,
+      h: axis("h", 100, 200, 400, 352),
+      b: axis("b", 60, 120, 300, 252),
+      grossAreaMm2: 120000,
+      steelAreaMm2: 2513,
+      params: { ...params, fy: 460, fyv: 460 },
+    });
+    expect(out.applies).toBe(true);
+    expect(out.utilisation).toBeCloseTo(mPrime / 200, 6);
+  });
+
+  it("the minimum eccentricity is applied about one axis at a time, not both", () => {
+    // Stocky 400 × 400 column, no end moments: both axes sit on the minimum moment N × 20 mm = 30 kNm.
+    const r = calculateColumnDesign(
+      input(
+        bsOverrides({
+          bMm: 400,
+          hMm: 400,
+          heightM: 2,
+          nEdKn: 1500,
+          mTopKnm: 0,
+          mBotKnm: 0,
+          mTopBKnm: 0,
+          mBotBKnm: 0,
+        }),
+      ),
+    );
+    const o = r.outputs;
+    expect(o.axes.h.slenderness.designMomentKnm).toBeCloseTo(30, 6);
+    expect(o.axes.b.slenderness.designMomentKnm).toBeCloseTo(30, 6);
+    // Applied to both axes at once it would be close to twice the uniaxial utilisation.
+    expect(o.biaxial!.utilisation!).toBeCloseTo(Math.max(o.axes.h.utilisation!, o.axes.b.utilisation!), 6);
+  });
+
+  it("real moments about both axes load the column more than either alone", () => {
+    const base = { mTopKnm: 90, mBotKnm: 45 };
+    const alone = calculateColumnDesign(input(base)).outputs.governingUtilisation!;
+    const both = calculateColumnDesign(
+      input({ ...base, mTopBKnm: 40, mBotBKnm: 20 }),
+    ).outputs.governingUtilisation!;
+    expect(both).toBeGreaterThan(alone);
+  });
+});
+
+describe("column shear", () => {
+  const params = { concreteStrength: 30, fy: 500, fyv: 500, alphaCc: 0.85, gammaC: 1.5, gammaS: 1.15, creepRatio: 2 };
+  const common = {
+    nEdKn: 1200,
+    momentKnm: 60,
+    widthMm: 300,
+    effectiveDepthMm: 352,
+    overallDepthMm: 400,
+    tensionSteelMm2: 3 * Math.PI * 100,
+    params,
+  };
+
+  it("EC2 alpha_cw: 1 at no compression, 1 + r to a quarter of f_cd, 1.25 to a half, then falls", () => {
+    expect(ec2AlphaCw(0)).toBe(1);
+    expect(ec2AlphaCw(0.1)).toBeCloseTo(1.1, 10);
+    expect(ec2AlphaCw(0.25)).toBeCloseTo(1.25, 10);
+    expect(ec2AlphaCw(0.4)).toBe(1.25);
+    expect(ec2AlphaCw(0.5)).toBeCloseTo(1.25, 10);
+    expect(ec2AlphaCw(0.75)).toBeCloseTo(0.625, 10);
+  });
+
+  it("EC2 V_Rd,c and the links needed match the hand calculation", () => {
+    const sigmaCp = 1.2e6 / (300 * 400);
+    const k = 1 + Math.sqrt(200 / 352);
+    const rho = (3 * Math.PI * 100) / (300 * 352);
+    const term = 0.12 * k * Math.cbrt(100 * rho * 30);
+    const vmin = 0.035 * Math.pow(k, 1.5) * Math.sqrt(30);
+    const vRdc = ((Math.max(term, vmin) + 0.15 * Math.min(sigmaCp, 0.2 * FCD)) * 300 * 352) / 1000;
+
+    const low = ec2Column.shear({ ...common, vEdKn: 100 });
+    expect(low.concreteCapacityKn).toBeCloseTo(vRdc, 6);
+    expect(vRdc).toBeGreaterThan(115);
+    expect(vRdc).toBeLessThan(125);
+    expect(low.verdict).toBe("links-minimum");
+    expect(low.aswPerSMmReq).toBe(0);
+
+    const z = 0.9 * 352;
+    const base = ec2AlphaCw(sigmaCp / FCD) * 300 * z * 0.6 * (1 - 30 / 250) * FCD;
+    const high = ec2Column.shear({ ...common, vEdKn: 200 });
+    expect(high.verdict).toBe("links-designed");
+    expect(high.maxCapacityKn).toBeCloseTo(base / 2 / 1000, 6);
+    // 200 kN is below V_Rd,max at cot(theta) = 2.5, so the flattest strut applies.
+    expect(200e3).toBeLessThan(base / 2.9);
+    expect(high.aswPerSMmReq).toBeCloseTo(200e3 / (z * (500 / 1.15) * 2.5), 6);
+  });
+
+  it("EC2 flags a shear above the web crushing limit", () => {
+    expect(ec2Column.shear({ ...common, vEdKn: 2000 }).verdict).toBe("section-inadequate");
+  });
+
+  it("BS 8110: v, v_c with the axial enhancement capped, and nominal links, by hand", () => {
+    const bsParams = { ...params, fy: 460, fyv: 460 };
+    const v = 100e3 / (300 * 352);
+    const vc = bs8110Vc(3 * Math.PI * 100, 300, 352, 30);
+    const nOverA = 1.2e6 / (300 * 400);
+    const enhanced = vc + 0.6 * nOverA * Math.min(1, (100e3 * 400) / (60 * 1e6));
+    const cap = vc * Math.sqrt(1 + (0.06 * 1.2e6) / (300 * 400 * vc));
+    const vcAxial = Math.min(enhanced, cap);
+    expect(cap).toBeLessThan(enhanced); // the cap governs at this much axial load
+    const out = bs8110Column.shear({ ...common, vEdKn: 100, params: bsParams });
+    expect(out.concreteCapacityKn).toBeCloseTo((vcAxial * 300 * 352) / 1000, 6);
+    expect(v).toBeGreaterThan(0.5 * vcAxial);
+    expect(v).toBeLessThanOrEqual(vcAxial + 0.4);
+    expect(out.verdict).toBe("links-minimum");
+    expect(out.aswPerSMmReq).toBeCloseTo((0.4 * 300) / (0.87 * 460), 6);
+  });
+
+  it("BS 8110 designs links when v exceeds v_c' + 0.4", () => {
+    const bsParams = { ...params, fy: 460, fyv: 460 };
+    const out = bs8110Column.shear({ ...common, vEdKn: 250, params: bsParams });
+    expect(out.verdict).toBe("links-designed");
+    expect(out.aswPerSMmReq).toBeGreaterThan((0.4 * 300) / (0.87 * 460));
+  });
+
+  it("takes the shear from the end moments by statics unless one is entered", () => {
+    const fromMoments = calculateColumnDesign(input());
+    expect(fromMoments.outputs.axes.h.shear.vEdKn).toBeCloseTo(30 / 3.5, 6);
+    expect(fromMoments.outputs.axes.h.shear.source).toBe("end moments");
+    // Double curvature carries the most shear.
+    const double = calculateColumnDesign(input({ mTopKnm: 60, mBotKnm: -60 }));
+    expect(double.outputs.axes.h.shear.vEdKn).toBeCloseTo(120 / 3.5, 6);
+    const entered = calculateColumnDesign(input({ shearHKn: 50 }));
+    expect(entered.outputs.axes.h.shear.vEdKn).toBe(50);
+    expect(entered.outputs.axes.h.shear.source).toBe("entered");
+  });
+
+  it("a heavy shear tightens the link spacing below the detailing limit", () => {
+    const r = calculateColumnDesign(input({ shearHKn: 300 }));
+    expect(r.outputs.links.governedBy).toBe("shear along h");
+    expect(r.outputs.links.spacingMm).toBeLessThan(300);
+    expect(r.outputs.links.spacingMm % 25).toBe(0);
+    const check = r.checks.find((c) => c.label === "Links resist the shear along h");
+    expect(check?.status).toBe("pass");
+  });
+
+  it("a shear beyond the section limit fails the column", () => {
+    const r = calculateColumnDesign(input({ shearHKn: 2000 }));
+    expect(r.checks.find((c) => c.label === "Shear along h within section limit")?.status).toBe("fail");
+    expect(r.outputs.adequate).toBe(false);
+  });
+});
+
+describe("input parsing for the new fields", () => {
+  it("a blank shear means 'from the end moments'; a negative one is rejected", () => {
+    expect(parseColumnDesignInput({ ...columnDesignDefaults, shearHKn: "" }).success).toBe(true);
+    expect(parseColumnDesignInput({ ...columnDesignDefaults, shearHKn: "-5" }).success).toBe(false);
+    expect(parseColumnDesignInput({ ...columnDesignDefaults, shearBKn: "abc" }).success).toBe(false);
+  });
+
+  it("rejects a link steel grade that isn't on the list and a moment that is not a number", () => {
+    expect(parseColumnDesignInput({ ...columnDesignDefaults, fyvMpa: "300" }).success).toBe(false);
+    expect(parseColumnDesignInput({ ...columnDesignDefaults, mTopBKnm: "x" }).success).toBe(false);
+  });
+
+  it("minor-axis moments default to zero, so a first-time user gets the other axis checked for free", () => {
+    expect(columnDesignDefaults.mTopBKnm).toBe("0");
+    expect(columnDesignDefaults.mBotBKnm).toBe("0");
   });
 });

@@ -18,6 +18,7 @@ export const HEIGHT_MIN_M = 0.5;
 export const HEIGHT_MAX_M = 20;
 export const AXIAL_MAX_KN = 50_000;
 export const MOMENT_MAX_KNM = 20_000;
+export const SHEAR_MAX_KN = 5_000;
 export const BARS_PER_FACE_MIN = 2;
 export const BARS_PER_FACE_MAX = 8;
 export const BETA_MIN = 0.5;

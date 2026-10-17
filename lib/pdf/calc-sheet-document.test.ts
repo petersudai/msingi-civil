@@ -152,7 +152,7 @@ it("renders a beam check sheet with the design checks section", { timeout: 60_00
   }
 });
 
-it("renders a column check sheet with the interaction diagram", { timeout: 60_000 }, async () => {
+it("renders a column check sheet with both interaction diagrams", { timeout: 60_000 }, async () => {
   const { renderToBuffer } = await import("@react-pdf/renderer");
   const { CalcSheetDocument } = await import("./calc-sheet-document");
   const { calculateColumnDesign } = await import("@/lib/calculations/column-design/calculate");
@@ -163,7 +163,7 @@ it("renders a column check sheet with the interaction diagram", { timeout: 60_00
   const parsed = parseColumnDesignInput(columnDesignDefaults);
   if (!parsed.success) throw new Error("default column input should parse");
   const result = calculateColumnDesign(parsed.data);
-  expect(result.charts?.length).toBe(1);
+  expect(result.charts?.length).toBe(2);
 
   const buffer = await renderToBuffer(
     createElement(CalcSheetDocument, {
