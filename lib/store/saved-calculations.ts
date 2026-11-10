@@ -6,8 +6,8 @@ import { persist } from "zustand/middleware";
  *
  * Everything persists to localStorage immediately (site connectivity is
  * unreliable; saving must never depend on the network). When the user signs
- * in to a configured Supabase backend, the same records back up to the cloud
- * via `lib/supabase/sync.ts`. IDs are UUIDs so local and cloud copies merge
+ * in to a configured cloud account, the same records back up to the cloud
+ * via `lib/cloud/sync.ts`. IDs are UUIDs so local and cloud copies merge
  * cleanly.
  */
 

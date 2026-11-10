@@ -13,8 +13,8 @@ a black box, and everything exports as a PDF a reviewer can audit.
 ## Stack
 
 Next.js (App Router) · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Zod ·
-React Hook Form · Zustand · Supabase (optional, env-gated) · @react-pdf/renderer ·
-Vitest.
+React Hook Form · Zustand · Neon Postgres + Neon Auth (optional, env-gated) ·
+@react-pdf/renderer · Vitest.
 
 ## Getting started
 
@@ -52,7 +52,9 @@ lib/
   pdf/                   # PDF calc sheet (lazy-loaded on Export click)
   store/                 # zustand: saved calcs (localStorage), report meta,
                          # one-shot tool-to-tool hand-off (beam -> rebar)
-  supabase/              # env-gated client + explicit backup/restore
+  auth/                  # Neon Auth instance, session helper, safe redirects
+  cloud/                 # env check + explicit backup/restore client
+  db.ts                  # Neon serverless SQL client
 components/
   tool/                  # shared tool chrome: ToolShell, CalcSheet, stamp,
                          # NumberField, AdvancedSection, HowItWorks, export/save
@@ -60,8 +62,11 @@ components/
   shell/                 # app header, bottom nav, wordmark
 app/
   tools/<slug>/page.tsx  # one route per tool
-  saved/  account/       # persistence + auth surfaces
-supabase/migrations/     # SQL schema + RLS for cloud backup
+  saved/  account/       # persistence surfaces
+  auth/sign-in  sign-up  # registration and sign-in pages, plus server actions
+  api/auth/[...path]     # Neon Auth proxy
+  api/calculations       # cloud backup API, scoped to the signed-in user
+db/migrations/           # SQL schema for cloud backup
 ```
 
 ### The calculation contract
@@ -114,27 +119,42 @@ tool up from the registry.
 ## Persistence model: local-first
 
 Saved calculations write to localStorage immediately (site connectivity is
-unreliable; saving never depends on the network). Supabase adds optional
-sign-in and **explicit** backup/restore, with no magic background sync.
+unreliable; saving never depends on the network). Neon adds optional accounts
+(registration, sign-in, sign-out) and **explicit** backup/restore, with no
+magic background sync. Every tool works without an account.
+
+Accounts use Neon Auth (managed Better Auth); backup rows live in Neon
+Postgres. The browser never talks to the database: `app/api/calculations`
+checks the session and scopes every query to the signed-in user's id, and an
+upsert refuses to overwrite a row id that belongs to someone else.
 
 To enable the cloud layer:
 
-1. Create a Supabase project and run `supabase/migrations/0001_init.sql`
-   (SQL editor or `supabase db push`). RLS restricts every row to its owner.
-2. `cp .env.example .env.local` and fill in the project URL + anon key.
-3. Restart the dev server. The Account screen becomes sign-in/backup.
+1. Create a Neon project and enable Auth on its branch (Neon Console, Auth).
+2. Run `db/migrations/0001_init.sql` against the database (Neon SQL editor or
+   `psql "$DATABASE_URL" -f db/migrations/0001_init.sql`).
+3. `cp .env.example .env.local` and fill in `DATABASE_URL` (pooled),
+   `NEON_AUTH_BASE_URL` and `NEON_AUTH_COOKIE_SECRET`.
+4. Restart the dev server. The Account screen gets sign-in and registration.
+
+Email verification is off by default in Neon Auth, so a new account works
+immediately. Turn it on in the Neon Console (Auth, Configuration) before you
+rely on email addresses being real.
 
 ## Deploying to Vercel
 
 The app is zero-config for Vercel (Next.js App Router, static-friendly routes,
-no server-only secrets required to boot).
+no secrets required to boot).
 
 1. Import the repo in Vercel and deploy. Build command is `npm run build`,
    output detected automatically (`vercel.json` pins this explicitly).
-2. Cloud backup is optional: only set `NEXT_PUBLIC_SUPABASE_URL` and
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the Vercel project's Environment
-   Variables if you've enabled the Supabase layer (see below). The app runs
-   fully in local-first mode without them.
+2. Accounts and cloud backup are optional. To enable them, set
+   `DATABASE_URL`, `NEON_AUTH_BASE_URL` and `NEON_AUTH_COOKIE_SECRET` in the
+   Vercel project's Environment Variables (see the persistence section), and
+   add your deployed URL as a trusted domain in the Neon Console (Auth,
+   Configuration) so sign-in can redirect back to it. The app runs fully in
+   local-first mode without them. These are secrets: never prefix them with
+   `NEXT_PUBLIC_`.
 3. `npm run ci` (typecheck, lint, test, build) mirrors what should pass
    before every deploy; run it locally or wire it into a CI check.
 

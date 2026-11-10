@@ -17,8 +17,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@neon/auth": "^0.8.2",
+    "@neondatabase/serverless": "^1.2.0",
     "@react-pdf/renderer": "^4.5.1",
-    "@supabase/supabase-js": "^2.110.2",
     "@vercel/analytics": "^1.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
