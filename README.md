@@ -141,6 +141,17 @@ Email verification is off by default in Neon Auth, so a new account works
 immediately. Turn it on in the Neon Console (Auth, Configuration) before you
 rely on email addresses being real.
 
+### Keeping secrets out of the repo and the browser
+
+The three cloud variables are server-side only and never use the
+`NEXT_PUBLIC_` prefix, so Next.js can't inline them into client code. Real
+`.env*` files are git-ignored; only `.env.example`, with empty values, is
+committed. `lib/security/no-secrets.test.ts` runs with `npm test` and fails if
+a credential-shaped string appears in source, a secret name appears in a client
+component or a `NEXT_PUBLIC_` variable, or the ignore rules weaken. The
+registry test (`lib/tools/registry.test.ts`) fails if a tool is marked
+available without a page.
+
 ## Deploying to Vercel
 
 The app is zero-config for Vercel (Next.js App Router, static-friendly routes,

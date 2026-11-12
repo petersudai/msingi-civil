@@ -95,7 +95,7 @@ export const TOOLS: readonly ToolDefinition[] = [
       "Member forces for determinate plane trusses by the method of joints.",
     category: "structural",
     icon: Triangle,
-    status: "available",
+    status: "coming-soon",
     phase: 5,
   },
   {

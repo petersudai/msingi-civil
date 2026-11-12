@@ -15,7 +15,7 @@ export function AppFooter() {
         <p className="mt-2">
           Built by{" "}
           <a
-            href="https://sudaidevfolio.vercel.app"
+            href="https://petersudai.com"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block py-2 font-medium text-foreground underline-offset-4 hover:underline"
