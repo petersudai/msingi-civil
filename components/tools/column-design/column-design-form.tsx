@@ -4,7 +4,7 @@ import { ArrowRight, RectangleVertical } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { AdvancedSection } from "@/components/tool/advanced-section";
@@ -109,7 +109,7 @@ export function ColumnDesignForm() {
   }, [savedId, savedItems, form]);
 
   // Live calculation: recompute whenever the current values parse cleanly.
-  const values = form.watch();
+  const values = useWatch({ control: form.control });
   const live = useMemo(() => {
     const parsed = parseColumnDesignInput(values);
     if (!parsed.success) return null;
@@ -118,20 +118,20 @@ export function ColumnDesignForm() {
     } catch {
       return null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- watch() returns a fresh object per render; stringify keeps recompute cheap and correct
-  }, [JSON.stringify(values)]);
+  }, [values]);
 
   const diagramInput = useMemo(
     () => diagramInputFrom(values),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- same reason as above
-    [JSON.stringify(values)],
+    [values],
   );
 
-  const codeId = (form.watch("code") || columnDesignDefaults.code) as CodeId;
-  const endCondition = form.watch("endCondition") as EndCondition;
+  const codeId = (useWatch({ control: form.control, name: "code" }) || columnDesignDefaults.code) as CodeId;
+  const endCondition = useWatch({ control: form.control, name: "endCondition" }) as EndCondition;
   const code = getColumnCode(codeId);
-  const hLabel = Number(form.watch("hMm")) > 0 ? String(form.watch("hMm")) : "";
-  const bLabel = Number(form.watch("bMm")) > 0 ? String(form.watch("bMm")) : "";
+  const hMm = useWatch({ control: form.control, name: "hMm" });
+  const bMm = useWatch({ control: form.control, name: "bMm" });
+  const hLabel = Number(hMm) > 0 ? String(hMm) : "";
+  const bLabel = Number(bMm) > 0 ? String(bMm) : "";
 
   function changeCode(next: CodeId) {
     if (next === codeId) return;

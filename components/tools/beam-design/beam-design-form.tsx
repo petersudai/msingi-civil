@@ -4,7 +4,7 @@ import { ArrowRight, RectangleHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { AdvancedSection } from "@/components/tool/advanced-section";
 import { CalcSheet } from "@/components/tool/calc-sheet";
@@ -79,7 +79,7 @@ export function BeamDesignForm() {
   }, [savedId, savedItems, form]);
 
   // Live calculation: recompute whenever the current values parse cleanly.
-  const values = form.watch();
+  const values = useWatch({ control: form.control });
   const live = useMemo(() => {
     const parsed = parseBeamDesignInput(values);
     if (!parsed.success) return null;
@@ -88,13 +88,12 @@ export function BeamDesignForm() {
     } catch {
       return null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- watch() returns a fresh object per render; stringify keeps recompute cheap and correct
-  }, [JSON.stringify(values)]);
+  }, [values]);
 
-  const codeId = (form.watch("code") || beamDesignDefaults.code) as CodeId;
-  const loadMode = form.watch("loadMode") as LoadMode;
-  const selfWeight = form.watch("selfWeight");
-  const support = form.watch("support") as SupportCondition | undefined;
+  const codeId = (useWatch({ control: form.control, name: "code" }) || beamDesignDefaults.code) as CodeId;
+  const loadMode = useWatch({ control: form.control, name: "loadMode" }) as LoadMode;
+  const selfWeight = useWatch({ control: form.control, name: "selfWeight" });
+  const support = useWatch({ control: form.control, name: "support" }) as SupportCondition | undefined;
   const code = getBeamCode(codeId);
 
   function changeCode(next: CodeId) {

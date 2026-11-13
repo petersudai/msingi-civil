@@ -3,7 +3,7 @@
 import { PencilRuler } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { AdvancedSection } from "@/components/tool/advanced-section";
@@ -67,7 +67,7 @@ export function ConcreteMaterialsForm() {
   }, [savedId, savedItems, form]);
 
   // Live calculation: recompute whenever the current values parse cleanly.
-  const values = form.watch();
+  const values = useWatch({ control: form.control });
   const live = useMemo(() => {
     const parsed = parseConcreteMaterialsInput(values);
     if (!parsed.success) return null;
@@ -79,10 +79,9 @@ export function ConcreteMaterialsForm() {
     } catch {
       return null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- watch() returns a fresh object per render; stringify keeps recompute cheap and correct
-  }, [JSON.stringify(values)]);
+  }, [values]);
 
-  const mixSelection = form.watch("mixSelection") as string;
+  const mixSelection = useWatch({ control: form.control, name: "mixSelection" }) as string;
   const selectedClass =
     mixSelection !== "custom" && mixSelection
       ? MIX_CLASSES.find((m) => m.id === mixSelection)

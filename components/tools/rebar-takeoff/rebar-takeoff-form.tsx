@@ -3,7 +3,7 @@
 import { Grid3x3 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { AdvancedSection } from "@/components/tool/advanced-section";
@@ -77,7 +77,7 @@ export function RebarTakeoffForm() {
   }, [savedId, savedItems, form]);
 
   // Live calculation: recompute whenever the current values parse cleanly.
-  const values = form.watch();
+  const values = useWatch({ control: form.control });
   const live = useMemo(() => {
     const parsed = parseRebarTakeoffInput(values);
     if (!parsed.success) return null;
@@ -89,10 +89,9 @@ export function RebarTakeoffForm() {
     } catch {
       return null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- watch() returns a fresh object per render; stringify keeps recompute cheap and correct
-  }, [JSON.stringify(values)]);
+  }, [values]);
 
-  const memberType = form.watch("memberType") as MemberTypeSelection;
+  const memberType = useWatch({ control: form.control, name: "memberType" }) as MemberTypeSelection;
   const isLinear = memberType === "beam" || memberType === "column";
   const linkLabel = isLinear ? LINK_LABELS[memberType] : "";
 
